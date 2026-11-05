@@ -90,4 +90,4 @@ leader's live route, so they can see where to catch up — even with no signal, 
 | Offline layer | OSM base + Waymarked Trails hiking overlay, tile-cached with attribution | Free and legal to cache offline; hiking-oriented |
 | Premium layer | Ordnance Survey Maps API (online-only) | Official UK OS maps; the-hug.net tiles may not be reused |
 | Positioning | Browser Geolocation API (GNSS) | Cross-platform; heading from the device's heading / movement |
-| Auth (MVP) | Hardcoded password for the one identified leader | Placeholder until the registration process is designed |
+| Auth (MVP) | One fixed leader credential, verified by the backend (entered at publish time, not shipped in the bundle) | Placeholder until the registration process is designed |
