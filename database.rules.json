@@ -1,0 +1,10 @@
+{
+  "rules": {
+    "days": {
+      ".read": true,
+      "$date": {
+        ".write": "auth != null && auth.uid === 'LEADER_UID'"
+      }
+    }
+  }
+}

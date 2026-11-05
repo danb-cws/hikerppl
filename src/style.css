@@ -1,0 +1,115 @@
+html,
+body,
+#app,
+#map {
+  height: 100%;
+  margin: 0;
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+  background: #0b0b0f;
+}
+
+.status {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font: 13px system-ui, sans-serif;
+}
+
+.hikerppl-heading {
+  background: transparent;
+  border: none;
+}
+
+.hikerppl-heading-arrow {
+  transform-origin: center;
+  opacity: 0;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+  will-change: transform;
+}
+
+.hikerppl-layer-switch {
+  display: flex;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.hikerppl-layer-btn {
+  border: 0;
+  background: transparent;
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font: 12px system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.hikerppl-layer-btn.is-active {
+  background: #1a7a4c;
+}
+
+.leader-panel {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  padding: 8px;
+  border-radius: 8px;
+  font: 13px system-ui, sans-serif;
+  max-width: 240px;
+}
+
+.leader-panel form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.leader-panel input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 4px;
+  font: 13px system-ui, sans-serif;
+}
+
+.leader-panel button {
+  box-sizing: border-box;
+  width: 100%;
+  border: 0;
+  background: #1a7a4c;
+  color: #fff;
+  padding: 7px 10px;
+  border-radius: 4px;
+  font: 13px system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.leader-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.leader-status {
+  color: #ffd7d7;
+  word-break: break-word;
+}
