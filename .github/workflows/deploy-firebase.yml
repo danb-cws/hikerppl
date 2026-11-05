@@ -19,6 +19,10 @@ jobs:
           node-version: 20
       - run: npm ci
         working-directory: functions
-      - run: npx --yes firebase-tools@latest deploy --only functions,database --non-interactive --token "$FIREBASE_TOKEN"
+      - name: Deploy functions and database rules
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-sa.json"
+          npx --yes firebase-tools@latest deploy --only functions,database --non-interactive
         env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}

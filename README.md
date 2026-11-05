@@ -67,7 +67,13 @@ The free **OS OpenData** plan is enough for the OS OpenData layers in these styl
 4. Replace `hikerppl` in `.firebaserc` with your project id.
 5. From **Project settings → Your apps → web app**, copy `apiKey`, `authDomain`, `databaseURL`, and
    `projectId` into the `VITE_FIREBASE_*` GitHub secrets.
-6. Create a deploy token with `npx firebase-tools login:ci` and add it as the `FIREBASE_TOKEN` secret.
+6. Create a **service account** for deploys and add its JSON key as the `FIREBASE_SERVICE_ACCOUNT`
+   secret:
+   - GCP Console → **IAM & Admin → Service Accounts → Create service account** (name e.g.
+     `firebase-deploy`).
+   - Grant it **Firebase Admin** and **Service Account User**.
+   - **Keys → Add key → JSON** to download the key file.
+   - Store the key file's *entire JSON contents* as the `FIREBASE_SERVICE_ACCOUNT` secret.
 
 ### 3. GitHub secrets
 
@@ -78,7 +84,7 @@ The free **OS OpenData** plan is enough for the OS OpenData layers in these styl
 | `VITE_FIREBASE_AUTH_DOMAIN` | `deploy-pages.yml` | Firebase web app config |
 | `VITE_FIREBASE_DATABASE_URL` | `deploy-pages.yml` | Firebase web app config |
 | `VITE_FIREBASE_PROJECT_ID` | `deploy-pages.yml` | Firebase web app config |
-| `FIREBASE_TOKEN` | `deploy-firebase.yml` | `firebase login:ci` |
+| `FIREBASE_SERVICE_ACCOUNT` | `deploy-firebase.yml` | GCP service account JSON key (whole file) |
 
 The `VITE_*` values are baked into the client bundle at build time. That is by design for a static PWA:
 the Firebase `apiKey`/`databaseURL`/`projectId` are not secrets (data is protected by the security
