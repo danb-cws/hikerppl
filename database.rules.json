@@ -3,7 +3,7 @@
     "days": {
       ".read": true,
       "$date": {
-        ".write": "auth != null && auth.uid === 'LEADER_UID'"
+        ".write": "auth != null && auth.uid === 'G9xUoTebMlPcJiWYm7LVT9vRq4c2'"
       }
     }
   }
