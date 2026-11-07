@@ -12,10 +12,10 @@ shell and OSM-based tiles are cached, and the last-published route stays on scre
   self-updating via the service worker.
 - **Firebase Realtime Database** backend — the leader writes today's track/waypoints, members subscribe;
   a scheduled Cloud Function wipes the previous day's data at 03:00 Europe/London.
-- **Three map layers** (all raster):
-  - OSM base — tile-cached offline.
-  - Waymarked Trails hiking overlay — tile-cached offline.
-  - Ordnance Survey Maps API, `Outdoor_3857` style — online-only, per OS terms.
+- **Map layers** (all raster):
+  - OpenTopoMap — the default: contours + OSM footpaths, tile-cached.
+  - OSM base + Waymarked Trails hiking overlay — the offline fallback, tile-cached.
+  - Ordnance Survey Maps API, `Outdoor_3857` style — optional (needs an OS key), online-only.
 
 Module specs live beside each module under `src/*/SPEC.md`; the architecture is in `architecture.md`.
 

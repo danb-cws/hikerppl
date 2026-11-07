@@ -27,10 +27,19 @@ const OSM_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 const WAYMARKED_ATTRIBUTION =
   '&copy; <a href="https://hiking.waymarkedtrails.org">Waymarked Trails: Hiking</a>';
+const TOPO_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM | ' +
+  '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> ' +
+  '(<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)';
 const OS_ATTRIBUTION = `&copy; Crown copyright and database rights ${new Date().getFullYear()} Ordnance Survey`;
 
 export function createMap(el: HTMLElement): MapApi {
   const map = L.map(el, { zoomControl: true }).setView([54.5, -2.5], 7);
+
+  const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    maxZoom: 17,
+    attribution: TOPO_ATTRIBUTION,
+  });
 
   const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -42,6 +51,8 @@ export function createMap(el: HTMLElement): MapApi {
     attribution: WAYMARKED_ATTRIBUTION,
   });
 
+  const osmStack = L.layerGroup([osm, hiking]);
+
   const osKey = import.meta.env.VITE_OS_MAPS_API_KEY as string | undefined;
   const osLayer = osKey
     ? L.tileLayer(`https://api.os.uk/maps/raster/v1/zxy/Outdoor_3857/{z}/{x}/{y}.png?key=${osKey}`, {
@@ -50,12 +61,14 @@ export function createMap(el: HTMLElement): MapApi {
       })
     : null;
 
-  // OS Outdoor is the default layer when the key is present; otherwise OSM + hiking overlay.
-  if (osLayer) {
-    osLayer.addTo(map);
-  } else {
-    osm.addTo(map);
-    hiking.addTo(map);
+  const baseLayers: { name: string; layer: L.Layer; active: boolean }[] = [
+    { name: 'Topo', layer: topo, active: true },
+    { name: 'OSM', layer: osmStack, active: false },
+  ];
+  if (osLayer) baseLayers.push({ name: 'OS', layer: osLayer, active: false });
+
+  for (const entry of baseLayers) {
+    if (entry.active) entry.layer.addTo(map);
   }
 
   const ownDot = L.circleMarker([0, 0], {
@@ -140,43 +153,37 @@ export function createMap(el: HTMLElement): MapApi {
     },
   };
 
-  if (osLayer) {
-    addLayerSwitch(map, osm, hiking, osLayer);
-  }
+  addLayerSwitch(map, baseLayers);
 
   return api;
 }
 
-function addLayerSwitch(map: L.Map, osm: L.TileLayer, hiking: L.TileLayer, os: L.TileLayer): void {
-  let premium = true;
-
+function addLayerSwitch(
+  map: L.Map,
+  layers: { name: string; layer: L.Layer; active: boolean }[],
+): void {
   const control = new L.Control({ position: 'topright' });
   control.onAdd = () => {
     const container = L.DomUtil.create('div', 'hikerppl-layer-switch');
-    const osmBtn = L.DomUtil.create('button', 'hikerppl-layer-btn', container);
-    const osBtn = L.DomUtil.create('button', 'hikerppl-layer-btn', container);
-    osmBtn.textContent = 'OSM';
-    osBtn.textContent = 'OS';
-    osBtn.classList.add('is-active');
-
-    const setLayer = (premiumLayer: boolean) => {
-      if (premiumLayer === premium) return;
-      premium = premiumLayer;
-      if (premiumLayer) {
-        osm.remove();
-        hiking.remove();
-        os.addTo(map);
-      } else {
-        map.removeLayer(os);
-        osm.addTo(map);
-        hiking.addTo(map);
-      }
-      osmBtn.classList.toggle('is-active', !premiumLayer);
-      osBtn.classList.toggle('is-active', premiumLayer);
-    };
-
-    osmBtn.addEventListener('click', () => setLayer(false));
-    osBtn.addEventListener('click', () => setLayer(true));
+    const buttons: HTMLElement[] = [];
+    for (const entry of layers) {
+      const btn = L.DomUtil.create('button', 'hikerppl-layer-btn', container);
+      btn.textContent = entry.name;
+      if (entry.active) btn.classList.add('is-active');
+      btn.addEventListener('click', () => {
+        for (let i = 0; i < layers.length; i++) {
+          if (layers[i].active) {
+            layers[i].active = false;
+            map.removeLayer(layers[i].layer);
+            buttons[i].classList.remove('is-active');
+          }
+        }
+        entry.active = true;
+        map.addLayer(entry.layer);
+        btn.classList.add('is-active');
+      });
+      buttons.push(btn);
+    }
     return container;
   };
   control.addTo(map);

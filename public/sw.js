@@ -1,7 +1,7 @@
 const SHELL_CACHE = 'hikerppl-shell-v1';
 const TILE_CACHE = 'hikerppl-tiles-v1';
 const OS_TILE_HOST = 'api.os.uk';
-const TILE_HOSTS = ['tile.openstreetmap.org', 'tile.waymarkedtrails.org'];
+const TILE_HOSTS = ['tile.openstreetmap.org', 'tile.waymarkedtrails.org', 'tile.opentopomap.org'];
 
 self.addEventListener('install', () => {
   self.skipWaiting();

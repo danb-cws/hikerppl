@@ -11,15 +11,15 @@ tags: [leaflet, mapping, layers]
 
 ## Purpose
 
-The single Leaflet map with its three layers: the offline OSM base + Waymarked Trails hiking overlay,
-and the online-only Ordnance Survey layer.
+The single Leaflet map with its selectable base layers: OpenTopoMap (default), the offline OSM base +
+Waymarked Trails hiking overlay, and the optional Ordnance Survey layer.
 
 ## Owns
 
 - The Leaflet instance and the layer stack.
-- Layer switching (OSM hiking/topo vs. OS Maps).
+- Layer switching (OpenTopoMap / OSM + Waymarked / OS Outdoor).
 - Rendering the leader's route and waypoints, and the member's own position and heading arrow.
-- Attribution strings (OSM, Waymarked Trails, Ordnance Survey).
+- Attribution strings (OpenTopoMap, OSM, Waymarked Trails, Ordnance Survey).
 
 ## Boundary
 
@@ -34,8 +34,9 @@ and the online-only Ordnance Survey layer.
 
 ## Decisions
 
+- **OpenTopoMap is the default base layer** (contours + OSM footpaths); OSM + Waymarked Trails is the
+  offline fallback; OS `Outdoor_3857` is an optional third layer when the OS key is present.
 - The OS layer uses the `Outdoor_3857` Web Mercator style: the iconic `Leisure` style is British National
-  Grid only, so it cannot sit beside the Web Mercator OSM base on one Leaflet map.
-- OS Outdoor is the **default** layer when the OS key is present; OSM + Waymarked Trails is the toggle
-  (and the offline fallback). The free OS OpenData plan serves Outdoor at roughly 1:50k detail — the
-  premium `Leisure` 1:25k/1:50k cartography is not available on it.
+  Grid only, so it cannot sit beside the Web Mercator OSM base on one Leaflet map. The free OS OpenData
+  plan serves Outdoor at roughly 1:50k detail; the premium `Leisure` 1:25k/1:50k cartography is not
+  available on it.
