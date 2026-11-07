@@ -1,5 +1,7 @@
 # HikerPPL
 
+> **Status: archived** — this prototype is no longer maintained and is left as-is for reference.
+
 One installable map for the group — see your own location and the leader's live route, even offline.
 
 A progressive web app (PWA) served from GitHub Pages. The leader live-publishes their track; every
