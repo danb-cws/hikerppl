@@ -35,12 +35,12 @@ export function createMap(el: HTMLElement): MapApi {
   const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: OSM_ATTRIBUTION,
-  }).addTo(map);
+  });
 
   const hiking = L.tileLayer('https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png', {
     maxZoom: 18,
     attribution: WAYMARKED_ATTRIBUTION,
-  }).addTo(map);
+  });
 
   const osKey = import.meta.env.VITE_OS_MAPS_API_KEY as string | undefined;
   const osLayer = osKey
@@ -49,6 +49,14 @@ export function createMap(el: HTMLElement): MapApi {
         attribution: OS_ATTRIBUTION,
       })
     : null;
+
+  // OS Outdoor is the default layer when the key is present; otherwise OSM + hiking overlay.
+  if (osLayer) {
+    osLayer.addTo(map);
+  } else {
+    osm.addTo(map);
+    hiking.addTo(map);
+  }
 
   const ownDot = L.circleMarker([0, 0], {
     radius: 7,
@@ -140,7 +148,7 @@ export function createMap(el: HTMLElement): MapApi {
 }
 
 function addLayerSwitch(map: L.Map, osm: L.TileLayer, hiking: L.TileLayer, os: L.TileLayer): void {
-  let premium = false;
+  let premium = true;
 
   const control = new L.Control({ position: 'topright' });
   control.onAdd = () => {
@@ -149,7 +157,7 @@ function addLayerSwitch(map: L.Map, osm: L.TileLayer, hiking: L.TileLayer, os: L
     const osBtn = L.DomUtil.create('button', 'hikerppl-layer-btn', container);
     osmBtn.textContent = 'OSM';
     osBtn.textContent = 'OS';
-    osmBtn.classList.add('is-active');
+    osBtn.classList.add('is-active');
 
     const setLayer = (premiumLayer: boolean) => {
       if (premiumLayer === premium) return;

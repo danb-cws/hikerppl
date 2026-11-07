@@ -36,3 +36,6 @@ and the online-only Ordnance Survey layer.
 
 - The OS layer uses the `Outdoor_3857` Web Mercator style: the iconic `Leisure` style is British National
   Grid only, so it cannot sit beside the Web Mercator OSM base on one Leaflet map.
+- OS Outdoor is the **default** layer when the OS key is present; OSM + Waymarked Trails is the toggle
+  (and the offline fallback). The free OS OpenData plan serves Outdoor at roughly 1:50k detail — the
+  premium `Leisure` 1:25k/1:50k cartography is not available on it.
