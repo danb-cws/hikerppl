@@ -19,7 +19,8 @@ app shell and the OSM-based tiles.
 - The web app manifest and the service worker.
 - The install/update flow: pre-cache the shell, update to the new build when one ships.
 - The offline tile cache: cache-first caching of OSM and Waymarked Trails tiles as they are viewed.
-- App bootstrap: mounts map and positioning, wires up leader-publish and follower-sync.
+- App bootstrap: mounts map and positioning, wires up the toolbar, track-recorder, leader-publish and
+  follower-sync.
 
 ## Boundary
 

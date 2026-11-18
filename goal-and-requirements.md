@@ -52,8 +52,8 @@ leader's live route, so they can see where to catch up — even with no signal, 
 
 ## Non-Goals
 
-- No full registration or identity system in the first build — one identified leader with a hardcoded
-  password.
+- No full registration or identity system — one shared leader credential (a fixed password for the
+  leader role), where the leader's *name* is a display label rather than a separate account.
 - No Identified↔Identified text messaging.
 - No distributed-versus-classic architecture decision yet (RNS/LXMF remains an open option for later).
 - Google Maps is not included — its tiles cannot legally be cached offline, and OS maps are served through
@@ -72,11 +72,13 @@ leader's live route, so they can see where to catch up — even with no signal, 
   service worker. *(One map every member has.)*
 - **Own position with a heading arrow.** The member's GNSS location is shown; a direction arrow appears
   when moving. *(Goal 1.)*
-- **Leader's live route.** The identified leader live-publishes their track as they walk, and it appears
-  on every member's map. *(Goals 1 & 2.)*
-- **Waypoint publishing.** The leader can post waypoints that others see. *(Goal 2.)*
-- **Two map layers.** An OpenStreetMap-based hiking/topo layer (OSM base plus the Waymarked Trails hiking
-  overlay) and Ordnance Survey's official Maps API for the premium UK look. *(Goal 1.)*
+- **Leader broadcast (opt-in).** A leader streams their live track and waypoints to Firebase; members
+  get a "`<name>` is live tracking" prompt and choose to *show* or *dismiss* it. *(Goals 1 & 2.)*
+- **Text notice.** A leader can send a short notice that pops up for every member until dismissed.
+- **Personal track recording.** Any user records their own track and named waypoints locally, shown in
+  their chosen colour (pink by default) and exportable as a GPX; never shared. *(Goal 1, personal.)*
+- **Selectable map layers.** OpenTopoMap (default), OSM base plus the Waymarked Trails hiking overlay
+  (offline fallback), and Ordnance Survey's official Maps API for the premium UK look. *(Goal 1.)*
 - **Offline tile caching.** The OSM-based layer caches tiles locally (with OSM attribution) so the map
   works without signal; the OS Maps layer is online-only, per its terms. *(Goal 3.)*
 - **Daily wipe at 3am.** All shared waypoints and tracks are deleted automatically each day at 3am.
@@ -90,4 +92,4 @@ leader's live route, so they can see where to catch up — even with no signal, 
 | Offline layer | OSM base + Waymarked Trails hiking overlay, tile-cached with attribution | Free and legal to cache offline; hiking-oriented |
 | Premium layer | Ordnance Survey Maps API (online-only) | Official UK OS maps; the-hug.net tiles may not be reused |
 | Positioning | Browser Geolocation API (GNSS) | Cross-platform; heading from the device's heading / movement |
-| Auth (MVP) | One fixed leader credential, verified by the backend (entered at publish time, not shipped in the bundle) | Placeholder until the registration process is designed |
+| Auth (MVP) | One shared leader account: the leader signs in with a display **name** + a fixed **password** against a fixed Firebase email (name is a label, not a credential) | Placeholder until the registration process is designed |

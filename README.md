@@ -1,6 +1,6 @@
 # HikerPPL
 
-> **Status: archived** — this prototype is no longer maintained and is left as-is for reference.
+> **Status: active.**
 
 One installable map for the group — see your own location and the leader's live route, even offline.
 
@@ -41,6 +41,7 @@ Without any env values the app still runs: the OS layer is hidden and live sync 
 | `VITE_FIREBASE_AUTH_DOMAIN` | Firebase web app config | No |
 | `VITE_FIREBASE_DATABASE_URL` | Realtime Database URL | No |
 | `VITE_FIREBASE_PROJECT_ID` | Firebase project id | No |
+| `VITE_LEADER_EMAIL` | Fixed email of the shared leader account (sign-in identifier) | No — disables leader sign-in when absent |
 
 ## Deployment
 
@@ -102,5 +103,10 @@ gh workflow run deploy-firebase.yml
 
 ## The leader
 
-The leader signs in from the app's bottom-right panel with the Firebase account's email and password,
-taps **Start publishing**, and their track plus any **Drop waypoint** taps go live for every member.
+The leader taps the hat icon in the toolbar's top-right and signs in with a **Name** and **Password** (the
+shared leader credential — the account password is fixed, e.g. `leonardo26`; the name is just the display
+name shown to members). Once signed in, the toolbar gains two extra controls:
+
+- **Broadcast** — streams the leader's live track and waypoints to everyone. Members are prompted
+  "`<name>` is live tracking" and can *show* or *dismiss* it.
+- **Notice** — sends a short text notice that pops up for every member until dismissed.

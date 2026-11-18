@@ -12,9 +12,11 @@ tags: [architecture, firebase, pwa, mapping]
 ## Overview
 
 HikerPPL is a static PWA on GitHub Pages plus one managed realtime backend (Firebase). The PWA is a
-single-page map; the backend is the only place shared state lives. The leader writes today's track and
-waypoints to Firebase, and every member subscribes to the same node and watches the route update live.
-The app shell and the OSM-based tile layer work offline; the OS Maps layer and live updates need signal.
+single-page map behind an icon toolbar; the backend is the only place shared state lives. The leader
+signs in with a name + fixed password, broadcasts a live track and waypoints to Firebase, and can send a
+text notice; each member opts in to a broadcast and watches the route update live. Every user can also
+record their own track locally (GPX) without sharing it. The app shell and the OSM-based tile layer work
+offline; the OS Maps layer and live updates need signal.
 
 ## Decisions
 
@@ -41,11 +43,12 @@ MapLibre's vector-tile machinery is unnecessary here.
 - Ordnance Survey Maps API (online-only), keyed with an OS API key that ships client-side (unavoidable
   for a tile API).
 
-### Auth: anonymous members, one fixed leader credential
+### Auth: anonymous members, one shared leader credential
 
-Members are anonymous and read-only. The leader signs into Firebase Auth with one fixed email/password
-account; the credential is entered at publish time and is not shipped in the app bundle. RTDB rules:
-`.read: true`, `.write: auth.uid == <leader-uid>`.
+Members are anonymous and read-only. The leader signs into Firebase Auth with a fixed email (build-time
+`VITE_LEADER_EMAIL`, non-secret) and a fixed shared password entered at sign-in; the *name* the leader
+types is a self-asserted display label shown to members, not a credential. RTDB rules: `.read: true`,
+`.write: auth.uid == <leader-uid>`.
 
 ## Components
 
@@ -53,26 +56,29 @@ The PWA is one SPA with five modules; each gets a module spec as it is built.
 
 | Module | Owns | Depends on |
 | --- | --- | --- |
-| app-shell | manifest, service worker, install/update, offline tile cache | map, positioning |
-| map | Leaflet instance and the three layers | — |
+| app-shell | manifest, service worker, install/update, offline tile cache | map, positioning, toolbar |
+| toolbar | the top toolbar, dropdowns, settings, dialogs and popups | map, settings |
+| map | Leaflet instance, layers, own position, shared + personal tracks | — |
 | positioning | Geolocation position and the heading arrow | — |
-| leader-publish | Firebase sign-in, track and waypoint upload | firebase-backend |
-| follower-sync | subscribe to today's node, render the leader's route | map, firebase-backend |
+| track-recorder | personal GPX recording, distance, named waypoints, local storage | positioning |
+| leader-publish | sign-in, broadcast, shared waypoints, text notice | firebase-backend |
+| follower-sync | opt-in broadcast subscription, notice delivery | map, firebase-backend |
 
 The daily wipe is backend-only — a Cloud Function, not part of the PWA (see `hikerppl-firebase-backend`).
 
 ## Repository layout
 
 - `src/` — the PWA SPA, one directory per module (`app-shell`, `map`, `positioning`, `leader-publish`,
-  `follower-sync`), each with its own `SPEC.md`.
+  `follower-sync`, `toolbar`, `track-recorder`), each with its own `SPEC.md`.
 - `functions/` — the Firebase backend: security rules and the wipe Cloud Function
   (`hikerppl-firebase-backend`).
 
 ## Data model
 
-Shared state is keyed by calendar date and wiped wholesale at the daily wipe; the full schema, date
-convention, and security rules live in `hikerppl-firebase-backend`. Publishing cadence and point thinning
-are a leader-publish concern, not an architecture invariant.
+Shared state is keyed by calendar date and wiped wholesale at the daily wipe; the full schema (track,
+waypoints, broadcast, notice), date convention, and security rules live in `hikerppl-firebase-backend`.
+Publishing cadence and point thinning are a leader-publish concern, not an architecture invariant.
+Personal recordings are browser-local (not in Firebase) and unaffected by the wipe.
 
 ## Offline
 
