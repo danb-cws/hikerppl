@@ -16,7 +16,8 @@ daily wipe.
 
 ## Owns
 
-- RTDB schema: `/days/{YYYY-MM-DD}/track` (ordered point array) and `/days/{YYYY-MM-DD}/waypoints`.
+- RTDB schema under `/days/{YYYY-MM-DD}/`: `track` (ordered point array), `waypoints`, `broadcast`
+  (`active`, `name`, `startedAt`), and `notice` (`text`, `name`, `at`).
 - Security rules: `.read: true`; `.write` only by the leader's UID.
 - The scheduled wipe Cloud Function.
 
