@@ -15,12 +15,23 @@ export interface Waypoint extends LatLng {
   label?: string;
 }
 
+export interface PersonalTrack {
+  id: string;
+  points: LatLng[];
+  color: string;
+}
+
 export interface MapApi {
   setOwnPosition(fix: PositionFix): void;
   addLeaderRoute(points: LatLng[]): void;
   clearLeaderRoute(): void;
   addWaypoints(waypoints: Waypoint[]): void;
   clearWaypoints(): void;
+  listLayers(): string[];
+  activeLayer(): string;
+  setLayer(name: string): void;
+  setPersonalTracks(tracks: PersonalTrack[]): void;
+  onPersonalTrackLongPress(handler: (id: string) => void): void;
 }
 
 const OSM_ATTRIBUTION =
@@ -32,6 +43,9 @@ const TOPO_ATTRIBUTION =
   '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> ' +
   '(<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)';
 const OS_ATTRIBUTION = `&copy; Crown copyright and database rights ${new Date().getFullYear()} Ordnance Survey`;
+
+const LEADER_ROUTE_COLOR = '#2563eb';
+const WAYPOINT_COLOR = '#e63946';
 
 export function createMap(el: HTMLElement): MapApi {
   const map = L.map(el, { zoomControl: true }).setView([54.5, -2.5], 7);
@@ -61,15 +75,15 @@ export function createMap(el: HTMLElement): MapApi {
       })
     : null;
 
-  const baseLayers: { name: string; layer: L.Layer; active: boolean }[] = [
-    { name: 'Topo', layer: topo, active: true },
-    { name: 'OSM', layer: osmStack, active: false },
+  const baseLayers: { name: string; layer: L.Layer }[] = [
+    { name: 'Topo', layer: topo },
+    { name: 'OSM', layer: osmStack },
   ];
-  if (osLayer) baseLayers.push({ name: 'OS', layer: osLayer, active: false });
+  if (osLayer) baseLayers.push({ name: 'OS', layer: osLayer });
 
-  for (const entry of baseLayers) {
-    if (entry.active) entry.layer.addTo(map);
-  }
+  const DEFAULT_LAYER = 'Topo';
+  let activeLayerName = DEFAULT_LAYER;
+  baseLayers.find((entry) => entry.name === DEFAULT_LAYER)?.layer.addTo(map);
 
   const ownDot = L.circleMarker([0, 0], {
     radius: 7,
@@ -102,8 +116,12 @@ export function createMap(el: HTMLElement): MapApi {
     }),
   }).addTo(map);
 
-  const leaderRoute = L.polyline([], { color: '#e63946', weight: 4 }).addTo(map);
+  const leaderRoute = L.polyline([], { color: LEADER_ROUTE_COLOR, weight: 4 }).addTo(map);
   const waypointLayer = L.layerGroup().addTo(map);
+  const personalLayer = L.layerGroup().addTo(map);
+
+  const personalLines = new Map<string, L.Polyline>();
+  let personalLongPressHandler: ((id: string) => void) | null = null;
 
   let firstFix = true;
 
@@ -141,7 +159,7 @@ export function createMap(el: HTMLElement): MapApi {
           radius: 8,
           color: '#ffffff',
           weight: 2,
-          fillColor: '#e63946',
+          fillColor: WAYPOINT_COLOR,
           fillOpacity: 1,
         })
           .bindTooltip(wp.label ?? 'Waypoint')
@@ -151,40 +169,76 @@ export function createMap(el: HTMLElement): MapApi {
     clearWaypoints() {
       waypointLayer.clearLayers();
     },
+    listLayers() {
+      return baseLayers.map((entry) => entry.name);
+    },
+    activeLayer() {
+      return activeLayerName;
+    },
+    setLayer(name) {
+      const entry = baseLayers.find((candidate) => candidate.name === name);
+      if (!entry || activeLayerName === name) return;
+      for (const base of baseLayers) {
+        if (map.hasLayer(base.layer)) map.removeLayer(base.layer);
+      }
+      entry.layer.addTo(map);
+      activeLayerName = name;
+    },
+    setPersonalTracks(tracks) {
+      personalLayer.clearLayers();
+      personalLines.clear();
+      for (const track of tracks) {
+        const line = L.polyline(track.points.map((p) => L.latLng(p.lat, p.lng)), {
+          color: track.color,
+          weight: 4,
+          opacity: 0.9,
+        });
+        line.addTo(personalLayer);
+        personalLines.set(track.id, line);
+        bindLongPress(line, () => personalLongPressHandler?.(track.id));
+      }
+    },
+    onPersonalTrackLongPress(handler) {
+      personalLongPressHandler = handler;
+    },
   };
-
-  addLayerSwitch(map, baseLayers);
 
   return api;
 }
 
-function addLayerSwitch(
-  map: L.Map,
-  layers: { name: string; layer: L.Layer; active: boolean }[],
-): void {
-  const control = new L.Control({ position: 'topright' });
-  control.onAdd = () => {
-    const container = L.DomUtil.create('div', 'hikerppl-layer-switch');
-    const buttons: HTMLElement[] = [];
-    for (const entry of layers) {
-      const btn = L.DomUtil.create('button', 'hikerppl-layer-btn', container);
-      btn.textContent = entry.name;
-      if (entry.active) btn.classList.add('is-active');
-      btn.addEventListener('click', () => {
-        for (let i = 0; i < layers.length; i++) {
-          if (layers[i].active) {
-            layers[i].active = false;
-            map.removeLayer(layers[i].layer);
-            buttons[i].classList.remove('is-active');
-          }
-        }
-        entry.active = true;
-        map.addLayer(entry.layer);
-        btn.classList.add('is-active');
-      });
-      buttons.push(btn);
+/** Fires `callback` after a ~550 ms press that does not move beyond a small threshold. */
+function bindLongPress(line: L.Polyline, callback: () => void): void {
+  const element = line.getElement();
+  if (!element) return;
+
+  let timer: number | null = null;
+  let startX = 0;
+  let startY = 0;
+
+  const cancel = () => {
+    if (timer !== null) {
+      window.clearTimeout(timer);
+      timer = null;
     }
-    return container;
   };
-  control.addTo(map);
+
+  element.addEventListener('pointerdown', (event: PointerEvent) => {
+    startX = event.clientX;
+    startY = event.clientY;
+    cancel();
+    timer = window.setTimeout(() => {
+      timer = null;
+      callback();
+    }, 550);
+  });
+
+  element.addEventListener('pointermove', (event: PointerEvent) => {
+    if (timer !== null && Math.hypot(event.clientX - startX, event.clientY - startY) > 12) {
+      cancel();
+    }
+  });
+
+  element.addEventListener('pointerup', cancel);
+  element.addEventListener('pointercancel', cancel);
+  element.addEventListener('pointerleave', cancel);
 }
