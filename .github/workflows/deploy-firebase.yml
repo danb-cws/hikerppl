@@ -19,6 +19,13 @@ jobs:
           node-version: 20
       - run: npm ci
         working-directory: functions
+      - name: Show service account identity (non-secret)
+        run: |
+          echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
+          echo "client_email: $(jq -r .client_email "$RUNNER_TEMP/firebase-sa.json")"
+          echo "project_id:   $(jq -r .project_id "$RUNNER_TEMP/firebase-sa.json")"
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
       - name: Deploy functions and database rules
         run: |
           echo "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
