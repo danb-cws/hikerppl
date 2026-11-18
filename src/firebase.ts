@@ -15,3 +15,7 @@ const app = firebaseConfigured ? initializeApp(config) : null;
 
 export const auth: Auth | null = app ? getAuth(app) : null;
 export const db: Database | null = app ? getDatabase(app, config.databaseURL) : null;
+
+/** Fixed Firebase email for the shared leader account (non-secret login identifier). */
+export const leaderEmail: string | null =
+  (import.meta.env.VITE_LEADER_EMAIL as string | undefined) || null;
