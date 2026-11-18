@@ -87,6 +87,7 @@ The free **OS OpenData** plan is enough for the OS OpenData layers in these styl
 | `VITE_FIREBASE_AUTH_DOMAIN` | `deploy-pages.yml` | Firebase web app config |
 | `VITE_FIREBASE_DATABASE_URL` | `deploy-pages.yml` | Firebase web app config |
 | `VITE_FIREBASE_PROJECT_ID` | `deploy-pages.yml` | Firebase web app config |
+| `VITE_LEADER_EMAIL` | `deploy-pages.yml` | The shared leader account's email (login identifier) |
 | `FIREBASE_SERVICE_ACCOUNT` | `deploy-firebase.yml` | GCP service account JSON key (whole file) |
 
 The `VITE_*` values are baked into the client bundle at build time. That is by design for a static PWA:

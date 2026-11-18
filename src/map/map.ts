@@ -48,7 +48,8 @@ const LEADER_ROUTE_COLOR = '#2563eb';
 const WAYPOINT_COLOR = '#e63946';
 
 export function createMap(el: HTMLElement): MapApi {
-  const map = L.map(el, { zoomControl: true }).setView([54.5, -2.5], 7);
+  const map = L.map(el, { zoomControl: false }).setView([54.5, -2.5], 7);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
 
   const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
     maxZoom: 17,
