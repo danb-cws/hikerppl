@@ -1,138 +1,154 @@
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
-import { push, ref } from 'firebase/database';
-import { auth, db, firebaseConfigured } from '../firebase';
+import { push, ref, set } from 'firebase/database';
+import { auth, db, firebaseConfigured, leaderEmail } from '../firebase';
 import { todayKey } from '../day';
 import type { PositionFix } from '../positioning/positioning';
 
 const CADENCE_METERS = 10;
 const CADENCE_SECONDS = 15;
+const NAME_KEY = 'hikerppl.leaderName';
 
-export interface LeaderPublish {
-  onPosition(fix: PositionFix): void;
+export interface SharedWaypoint {
+  lat: number;
+  lng: number;
+  label: string;
+}
+
+export interface LeaderApi {
+  signIn(name: string, password: string): Promise<void>;
+  signOut(): void;
+  isSignedIn(): boolean;
+  getName(): string | null;
+  isBroadcasting(): boolean;
+  setBroadcasting(on: boolean): void;
+  sendNotice(text: string): void;
+  pushWaypoint(waypoint: SharedWaypoint): void;
+  onFix(fix: PositionFix): void;
+  onStateChanged(cb: () => void): void;
   dispose(): void;
 }
 
-export function createLeaderPublish(
-  container: HTMLElement,
-  getPosition: () => PositionFix | null,
-): LeaderPublish {
-  const wrap = document.createElement('div');
-  wrap.className = 'leader-panel';
-  container.appendChild(wrap);
+export function createLeader(): LeaderApi {
+  const listeners = new Set<() => void>();
+  const emit = () => {
+    for (const cb of listeners) cb();
+  };
 
-  if (!firebaseConfigured || !auth || !db) {
-    wrap.textContent = 'Live sharing not configured (set VITE_FIREBASE_*).';
-    return { onPosition() {}, dispose() {} };
-  }
+  const disabled: LeaderApi = {
+    signIn: async () => {},
+    signOut() {},
+    isSignedIn: () => false,
+    getName: () => null,
+    isBroadcasting: () => false,
+    setBroadcasting() {},
+    sendNotice() {},
+    pushWaypoint() {},
+    onFix() {},
+    onStateChanged(cb) {
+      listeners.add(cb);
+    },
+    dispose() {},
+  };
+
+  if (!firebaseConfigured || !auth || !db || !leaderEmail) return disabled;
 
   const authInstance = auth;
   const dbInstance = db;
+  const email = leaderEmail;
 
-  const state = {
-    publishing: false,
-    lastPoint: null as { lat: number; lng: number } | null,
-    lastSentAt: 0,
+  let name: string | null = readName();
+  let broadcasting = false;
+  let lastPoint: { lat: number; lng: number } | null = null;
+  let lastSentAt = 0;
+
+  const setBroadcastNode = (active: boolean) => {
+    const node = ref(dbInstance, `days/${todayKey()}/broadcast`);
+    set(node, { active, name: name ?? 'Leader', startedAt: active ? Date.now() : 0 }).catch(() => {});
   };
 
-  const emailInput = document.createElement('input');
-  emailInput.type = 'email';
-  emailInput.placeholder = 'Leader email';
-  emailInput.autocomplete = 'username';
-
-  const passwordInput = document.createElement('input');
-  passwordInput.type = 'password';
-  passwordInput.placeholder = 'Password';
-  passwordInput.autocomplete = 'current-password';
-
-  const signInBtn = document.createElement('button');
-  signInBtn.type = 'submit';
-  signInBtn.textContent = 'Sign in';
-
-  const form = document.createElement('form');
-  form.append(emailInput, passwordInput, signInBtn);
-
-  const publishBtn = document.createElement('button');
-  publishBtn.type = 'button';
-  publishBtn.textContent = 'Start publishing';
-
-  const waypointBtn = document.createElement('button');
-  waypointBtn.type = 'button';
-  waypointBtn.textContent = 'Drop waypoint';
-
-  const signOutBtn = document.createElement('button');
-  signOutBtn.type = 'button';
-  signOutBtn.textContent = 'Sign out';
-
-  const controls = document.createElement('div');
-  controls.className = 'leader-controls';
-  controls.style.display = 'none';
-  controls.append(publishBtn, waypointBtn, signOutBtn);
-
-  const status = document.createElement('div');
-  status.className = 'leader-status';
-
-  wrap.append(form, controls, status);
-
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
-    signInBtn.disabled = true;
-    signInWithEmailAndPassword(authInstance, emailInput.value, passwordInput.value)
-      .catch((err: Error) => {
-        status.textContent = err.message;
-      })
-      .finally(() => {
-        signInBtn.disabled = false;
-      });
-  });
-
   const unsubscribe = onAuthStateChanged(authInstance, (user) => {
-    const signedIn = Boolean(user);
-    form.style.display = signedIn ? 'none' : '';
-    controls.style.display = signedIn ? '' : 'none';
-    if (!signedIn) {
-      state.publishing = false;
-      publishBtn.textContent = 'Start publishing';
+    if (!user) {
+      name = null;
+      broadcasting = false;
+      lastPoint = null;
+      lastSentAt = 0;
+      writeName(null);
     }
-  });
-
-  publishBtn.addEventListener('click', () => {
-    state.publishing = !state.publishing;
-    publishBtn.textContent = state.publishing ? 'Stop publishing' : 'Start publishing';
-  });
-
-  waypointBtn.addEventListener('click', () => {
-    const pos = getPosition();
-    if (!pos) return;
-    push(ref(dbInstance, `days/${todayKey()}/waypoints`), {
-      lat: pos.lat,
-      lng: pos.lng,
-      label: 'Waypoint',
-    }).catch(() => {});
-  });
-
-  signOutBtn.addEventListener('click', () => {
-    void signOut(authInstance);
+    emit();
   });
 
   return {
-    onPosition(fix) {
-      if (!state.publishing) return;
+    async signIn(inputName, password) {
+      await signInWithEmailAndPassword(authInstance, email, password);
+      name = inputName;
+      writeName(inputName);
+      emit();
+    },
+    signOut() {
+      void signOut(authInstance);
+    },
+    isSignedIn() {
+      return authInstance.currentUser != null;
+    },
+    getName() {
+      return name;
+    },
+    isBroadcasting() {
+      return broadcasting;
+    },
+    setBroadcasting(on) {
+      if (on === broadcasting) return;
+      broadcasting = on;
+      lastPoint = null;
+      lastSentAt = 0;
+      setBroadcastNode(on);
+      emit();
+    },
+    sendNotice(text) {
+      const node = ref(dbInstance, `days/${todayKey()}/notice`);
+      set(node, { text, name: name ?? 'Leader', at: Date.now() }).catch(() => {});
+    },
+    pushWaypoint(waypoint) {
+      if (!broadcasting) return;
+      push(ref(dbInstance, `days/${todayKey()}/waypoints`), waypoint).catch(() => {});
+    },
+    onFix(fix) {
+      if (!broadcasting) return;
       const now = Date.now();
-      const moved = state.lastPoint
-        ? Math.hypot(fix.lat - state.lastPoint.lat, fix.lng - state.lastPoint.lng) * 111_000 >=
-          CADENCE_METERS
+      const moved = lastPoint
+        ? Math.hypot(fix.lat - lastPoint.lat, fix.lng - lastPoint.lng) * 111_000 >= CADENCE_METERS
         : true;
-      const elapsed = now - state.lastSentAt >= CADENCE_SECONDS * 1000;
+      const elapsed = now - lastSentAt >= CADENCE_SECONDS * 1000;
       if (moved || elapsed) {
-        state.lastPoint = { lat: fix.lat, lng: fix.lng };
-        state.lastSentAt = now;
+        lastPoint = { lat: fix.lat, lng: fix.lng };
+        lastSentAt = now;
         push(ref(dbInstance, `days/${todayKey()}/track`), { lat: fix.lat, lng: fix.lng }).catch(
           () => {},
         );
       }
     },
+    onStateChanged(cb) {
+      listeners.add(cb);
+    },
     dispose() {
       unsubscribe();
     },
   };
+}
+
+function readName(): string | null {
+  try {
+    return localStorage.getItem(NAME_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeName(name: string | null): void {
+  try {
+    if (name) localStorage.setItem(NAME_KEY, name);
+    else localStorage.removeItem(NAME_KEY);
+  } catch {
+    // storage unavailable; name just won't persist across reloads
+  }
 }
