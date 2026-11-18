@@ -222,9 +222,10 @@ function bindLongPress(line: L.Polyline, callback: () => void): void {
     }
   };
 
-  element.addEventListener('pointerdown', (event: PointerEvent) => {
-    startX = event.clientX;
-    startY = event.clientY;
+  element.addEventListener('pointerdown', (event: Event) => {
+    const pointer = event as PointerEvent;
+    startX = pointer.clientX;
+    startY = pointer.clientY;
     cancel();
     timer = window.setTimeout(() => {
       timer = null;
@@ -232,8 +233,9 @@ function bindLongPress(line: L.Polyline, callback: () => void): void {
     }, 550);
   });
 
-  element.addEventListener('pointermove', (event: PointerEvent) => {
-    if (timer !== null && Math.hypot(event.clientX - startX, event.clientY - startY) > 12) {
+  element.addEventListener('pointermove', (event: Event) => {
+    const pointer = event as PointerEvent;
+    if (timer !== null && Math.hypot(pointer.clientX - startX, pointer.clientY - startY) > 12) {
       cancel();
     }
   });
