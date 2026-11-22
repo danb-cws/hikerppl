@@ -1,14 +1,30 @@
-const SHELL_CACHE = 'hikerppl-shell-v1';
+const APP_VERSION = '__BUILD_VERSION__';
+const SHELL_CACHE = 'hikerppl-shell-' + APP_VERSION;
 const TILE_CACHE = 'hikerppl-tiles-v1';
 const OS_TILE_HOST = 'api.os.uk';
 const TILE_HOSTS = ['tile.openstreetmap.org', 'tile.waymarkedtrails.org', 'tile.opentopomap.org'];
 
-self.addEventListener('install', () => {
-  self.skipWaiting();
+// New workers wait (no skipWaiting) so the page can prompt the user to refresh.
+self.addEventListener('install', () => {});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys
+          .filter((key) => key.startsWith('hikerppl-shell-') && key !== SHELL_CACHE)
+          .map((key) => caches.delete(key)),
+      );
+      await self.clients.claim();
+    })(),
+  );
 });
 
 self.addEventListener('fetch', (event) => {
@@ -40,7 +56,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // App shell (same-origin): stale-while-revalidate.
+  // App shell (same-origin): network-first, cache as fallback.
   event.respondWith(
     caches.open(SHELL_CACHE).then((cache) =>
       fetch(request)

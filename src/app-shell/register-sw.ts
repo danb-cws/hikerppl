@@ -1,47 +1,37 @@
 export function registerServiceWorker(): void {
   if (!('serviceWorker' in navigator)) return;
 
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {
-      // Registration failure is non-fatal: the app still works online.
-    });
-  });
-
-  setupUpdateNotification();
-}
-
-/**
- * Detects when a new bundle has been deployed and offers a one-tap refresh.
- * Works by comparing the hashed module-script src in the live index.html with
- * the one the current page loaded; the hashed name changes on every build.
- */
-function setupUpdateNotification(): void {
-  const currentScript = document
-    .querySelector('script[type="module"][src]')
-    ?.getAttribute('src');
-  if (!currentScript) return;
-
-  const checkForUpdate = async () => {
-    try {
-      const res = await fetch(`./index.html?update=${Date.now()}`, { cache: 'no-store' });
-      if (!res.ok) return;
-      const html = await res.text();
-      const match = html.match(/<script type="module"[^>]*src="([^"]+)"/);
-      if (match && match[1] !== currentScript) {
-        showUpdateToast();
-      }
-    } catch {
-      // offline or blocked; ignore
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
     }
-  };
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') void checkForUpdate();
   });
-  window.setInterval(() => void checkForUpdate(), 5 * 60 * 1000);
+
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('./sw.js')
+      .then((registration) => {
+        // The browser byte-compares sw.js on every load; a new stamped build
+        // makes updatefound fire, and we prompt the user to refresh.
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              showUpdateToast(() => newWorker.postMessage({ type: 'SKIP_WAITING' }));
+            }
+          });
+        });
+      })
+      .catch(() => {
+        // Registration failure is non-fatal: the app still works online.
+      });
+  });
 }
 
-function showUpdateToast(): void {
+function showUpdateToast(onRefresh: () => void): void {
   if (document.getElementById('hikerppl-update-toast')) return;
   const toast = document.createElement('button');
   toast.id = 'hikerppl-update-toast';
@@ -62,6 +52,6 @@ function showUpdateToast(): void {
     'box-shadow: 0 8px 24px rgba(0,0,0,.4)',
     'cursor: pointer',
   ].join(';');
-  toast.addEventListener('click', () => window.location.reload());
+  toast.addEventListener('click', onRefresh);
   document.body.appendChild(toast);
 }
