@@ -85,6 +85,13 @@ export function createLeader(): LeaderApi {
       emit();
     },
     signOut() {
+      if (broadcasting) {
+        broadcasting = false;
+        lastPoint = null;
+        lastSentAt = 0;
+        setBroadcastNode(false);
+        emit();
+      }
       void signOut(authInstance);
     },
     isSignedIn() {
