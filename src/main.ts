@@ -13,28 +13,34 @@ const map = createMap(document.getElementById('map')!);
 let settings = loadSettings();
 const recorder = createRecorder();
 const leader = createLeader();
-const follower = createFollower({
-  showBroadcastPrompt(name) {
-    toolbar.showBroadcastPrompt(name);
+const follower = createFollower(
+  {
+    showBroadcastPrompt(name) {
+      toolbar.showBroadcastPrompt(name);
+    },
+    hideBroadcastPrompt() {
+      toolbar.hideBroadcastPrompt();
+    },
+    setLiveIndicator(visible) {
+      toolbar.setLiveIndicator(visible);
+    },
+    showNotice(from, text) {
+      toolbar.showNotice(from, text);
+    },
+    renderShared(points, waypoints) {
+      map.addLeaderRoute(points);
+      map.addWaypoints(waypoints);
+    },
+    clearShared() {
+      map.clearLeaderRoute();
+      map.clearWaypoints();
+    },
+    centerOnLeader(point) {
+      map.centerOn(point);
+    },
   },
-  hideBroadcastPrompt() {
-    toolbar.hideBroadcastPrompt();
-  },
-  setLiveIndicator(visible) {
-    toolbar.setLiveIndicator(visible);
-  },
-  showNotice(from, text) {
-    toolbar.showNotice(from, text);
-  },
-  renderShared(points, waypoints) {
-    map.addLeaderRoute(points);
-    map.addWaypoints(waypoints);
-  },
-  clearShared() {
-    map.clearLeaderRoute();
-    map.clearWaypoints();
-  },
-});
+  () => leader.isBroadcasting(),
+);
 
 const renderPersonalTracks = () => {
   map.setPersonalTracks(
@@ -97,6 +103,7 @@ const toolbar = createToolbar(document.getElementById('app')!, {
   },
   onToggleBroadcast() {
     leader.setBroadcasting(!leader.isBroadcasting());
+    if (leader.isBroadcasting()) showToast('Tracking started');
   },
   onSendNotice(text) {
     leader.sendNotice(text);
@@ -218,4 +225,31 @@ function showLocationHint(): void {
 
   hint.append(text, ok);
   document.body.appendChild(hint);
+}
+
+/** Brief auto-dismissing toast. */
+function showToast(text: string): void {
+  const existing = document.getElementById('hikerppl-toast');
+  const toast = existing ?? document.createElement('div');
+  if (!existing) {
+    toast.id = 'hikerppl-toast';
+    toast.style.cssText = [
+      'position: fixed',
+      'left: 50%',
+      'bottom: 16px',
+      'transform: translateX(-50%)',
+      'z-index: 2000',
+      'background: rgba(20,23,28,.96)',
+      'color: #fff',
+      'border-radius: 999px',
+      'padding: 10px 18px',
+      'font: 600 14px/1 system-ui, sans-serif',
+      'box-shadow: 0 8px 24px rgba(0,0,0,.5)',
+      'pointer-events: none',
+    ].join(';');
+    document.body.appendChild(toast);
+  }
+  toast.textContent = text;
+  toast.classList.remove('hikerppl-hidden');
+  window.setTimeout(() => toast.classList.add('hikerppl-hidden'), 2500);
 }

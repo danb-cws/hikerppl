@@ -32,6 +32,7 @@ export interface MapApi {
   setLayer(name: string): void;
   setPersonalTracks(tracks: PersonalTrack[]): void;
   onPersonalTrackLongPress(handler: (id: string) => void): void;
+  centerOn(point: LatLng, zoom?: number): void;
 }
 
 const OSM_ATTRIBUTION =
@@ -201,6 +202,9 @@ export function createMap(el: HTMLElement): MapApi {
     },
     onPersonalTrackLongPress(handler) {
       personalLongPressHandler = handler;
+    },
+    centerOn(point, zoom) {
+      map.setView(L.latLng(point.lat, point.lng), zoom ?? Math.max(map.getZoom(), 15));
     },
   };
 

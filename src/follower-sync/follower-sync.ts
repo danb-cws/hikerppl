@@ -12,6 +12,7 @@ export interface FollowerCallbacks {
   showNotice(from: string, text: string): void;
   renderShared(points: LatLng[], waypoints: Waypoint[]): void;
   clearShared(): void;
+  centerOnLeader(point: LatLng): void;
 }
 
 export interface Follower {
@@ -25,7 +26,10 @@ export interface Follower {
   dispose(): void;
 }
 
-export function createFollower(cb: FollowerCallbacks): Follower {
+export function createFollower(
+  cb: FollowerCallbacks,
+  isSelfBroadcasting: () => boolean = () => false,
+): Follower {
   let points: LatLng[] = [];
   let waypoints: Waypoint[] = [];
   let activeStartedAt: number | null = null;
@@ -78,34 +82,41 @@ export function createFollower(cb: FollowerCallbacks): Follower {
     activeName =
       (broadcast && typeof broadcast.name === 'string' && broadcast.name) || 'Leader';
 
-    if (startedAt !== activeStartedAt) {
-      if (startedAt != null) {
-        // a fresh broadcast replaces the previous last-seen route until the user opts in
-        cb.clearShared();
-      }
-      activeStartedAt = startedAt;
-      dismissedStartedAt = null;
-      promptingStartedAt = null;
-      if (startedAt == null) optedInStartedAt = null;
-    }
-
-    if (startedAt != null) {
-      if (optedInStartedAt === startedAt) {
-        cb.renderShared(points, waypoints);
-        cb.setLiveIndicator(false);
-        cb.hideBroadcastPrompt();
-      } else if (dismissedStartedAt === startedAt) {
-        cb.setLiveIndicator(true);
-        cb.hideBroadcastPrompt();
-      } else if (promptingStartedAt !== startedAt) {
-        promptingStartedAt = startedAt;
-        cb.showBroadcastPrompt(activeName);
-        cb.setLiveIndicator(false);
-      }
-    } else {
+    if (isSelfBroadcasting()) {
+      // This device is the broadcasting leader: skip its own prompt and route.
       cb.setLiveIndicator(false);
       cb.hideBroadcastPrompt();
-      // keep the last-seen route on screen until the next broadcast
+      cb.clearShared();
+    } else {
+      if (startedAt !== activeStartedAt) {
+        if (startedAt != null) {
+          // a fresh broadcast replaces the previous last-seen route until the user opts in
+          cb.clearShared();
+        }
+        activeStartedAt = startedAt;
+        dismissedStartedAt = null;
+        promptingStartedAt = null;
+        if (startedAt == null) optedInStartedAt = null;
+      }
+
+      if (startedAt != null) {
+        if (optedInStartedAt === startedAt) {
+          cb.renderShared(points, waypoints);
+          cb.setLiveIndicator(false);
+          cb.hideBroadcastPrompt();
+        } else if (dismissedStartedAt === startedAt) {
+          cb.setLiveIndicator(true);
+          cb.hideBroadcastPrompt();
+        } else if (promptingStartedAt !== startedAt) {
+          promptingStartedAt = startedAt;
+          cb.showBroadcastPrompt(activeName);
+          cb.setLiveIndicator(false);
+        }
+      } else {
+        cb.setLiveIndicator(false);
+        cb.hideBroadcastPrompt();
+        // keep the last-seen route on screen until the next broadcast
+      }
     }
 
     const notice = today.child('notice').val() as
@@ -130,6 +141,8 @@ export function createFollower(cb: FollowerCallbacks): Follower {
       cb.hideBroadcastPrompt();
       cb.setLiveIndicator(false);
       cb.renderShared(points, waypoints);
+      const last = points[points.length - 1];
+      if (last) cb.centerOnLeader(last);
     },
     dismiss() {
       if (activeStartedAt == null) return;

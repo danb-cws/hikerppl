@@ -67,7 +67,7 @@ const ICONS = {
   notice:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5" stroke-linecap="round"/></svg>',
   settings:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h9M17 7h3M4 17h3M11 17h9M4 12h13M20 12h0"/><circle cx="15.5" cy="7" r="2"/><circle cx="8.5" cy="12" r="2"/><circle cx="15.5" cy="17" r="2"/></svg>',
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
   hatOutline:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5.8 9.8 a6.2 6.2 0 0 1 12.4 0"/><path d="M5.4 9.8 h13.2 l-1.9 2.3 H7.3 z"/><circle cx="12" cy="14" r="3.4"/><path d="M4.5 21 c1.7-4.4 4.5-6.2 7.5-6.2 s5.8 1.8 7.5 6.2"/></svg>',
   hatSolid:
@@ -103,13 +103,12 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
   const liveDot = el('span', 'hikerppl-live-dot hikerppl-hidden');
   liveDot.title = 'Live broadcast — tap to view';
   const settingsBtn = iconBtn(ICONS.settings, 'Settings');
-  const hatBtn = iconBtn(ICONS.hatOutline, 'Leader sign-in');
 
   const leftGroup = el('div', 'hikerppl-toolbar-group');
   leftGroup.append(layersBtn, fullscreenBtn, divider(), media, waypointBtn);
 
   const rightGroup = el('div', 'hikerppl-toolbar-group');
-  rightGroup.append(broadcastBtn, noticeBtn, liveDot, settingsBtn, hatBtn);
+  rightGroup.append(broadcastBtn, noticeBtn, liveDot, settingsBtn);
 
   const center = el('div', 'hikerppl-toolbar-center');
   center.appendChild(distanceEl);
@@ -118,10 +117,6 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
   // ---- layers dropdown ----
   const layersMenu = el('div', 'hikerppl-menu hikerppl-menu-left hikerppl-hidden');
   layersMenu.setAttribute('role', 'menu');
-
-  // ---- leader popover (sign-in / signed-in menu) ----
-  const leaderPopover = el('div', 'hikerppl-menu hikerppl-menu-right hikerppl-hidden');
-  leaderPopover.style.minWidth = '220px';
 
   // ---- settings sheet ----
   const sheet = el('div', 'hikerppl-sheet hikerppl-hidden');
@@ -144,7 +139,7 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
   const trackDetails = el('div', 'hikerppl-popup hikerppl-hidden');
   trackDetails.style.width = '250px';
 
-  container.append(bar, layersMenu, leaderPopover, sheet, fsFloat, broadcastPrompt, noticePopup, trackDetails);
+  container.append(bar, layersMenu, sheet, fsFloat, broadcastPrompt, noticePopup, trackDetails);
 
   // ---- rendering helpers ----
   const renderLayers = () => {
@@ -159,35 +154,6 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
         closeMenus();
       });
       layersMenu.appendChild(item);
-    }
-  };
-
-  const renderLeaderPopover = () => {
-    leaderPopover.textContent = '';
-    if (leaderState.signedIn) {
-      const title = el('div', 'hikerppl-menu-title', `Signed in as ${leaderState.name ?? 'leader'}`);
-      leaderPopover.appendChild(title);
-      const signOut = el('div', 'hikerppl-menu-item', 'Sign out');
-      signOut.addEventListener('click', () => {
-        cb.onLeaderSignOut();
-        closeMenus();
-      });
-      leaderPopover.appendChild(signOut);
-    } else {
-      const title = el('div', 'hikerppl-menu-title', 'Sign in as leader');
-      leaderPopover.appendChild(title);
-      const nameField = inputField('Name');
-      const passwordField = inputField('Password');
-      passwordField.querySelector('input')!.type = 'password';
-      leaderPopover.append(nameField, passwordField);
-      const signIn = el('button', 'hikerppl-btn', 'Sign in');
-      signIn.addEventListener('click', () => {
-        const name = nameField.querySelector('input')!.value.trim();
-        const password = passwordField.querySelector('input')!.value;
-        if (name && password) cb.onLeaderSignIn(name, password);
-        closeMenus();
-      });
-      leaderPopover.appendChild(signIn);
     }
   };
 
@@ -222,8 +188,8 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
     colorOpt.appendChild(swatches);
     sheetCard.appendChild(colorOpt);
 
+    sheetCard.appendChild(el('div', 'hikerppl-sheet-sec', 'Leader'));
     if (leaderState.signedIn) {
-      sheetCard.appendChild(el('div', 'hikerppl-sheet-sec', 'Leader'));
       const who = el('div', 'hikerppl-opt', '');
       who.appendChild(el('span', '', 'Signed in as'));
       who.appendChild(el('b', '', leaderState.name ?? 'leader'));
@@ -231,6 +197,18 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
       const signOut = el('div', 'hikerppl-opt hikerppl-signout', 'Sign out');
       signOut.addEventListener('click', () => cb.onLeaderSignOut());
       sheetCard.appendChild(signOut);
+    } else {
+      const nameField = inputField('Name');
+      const passwordField = inputField('Password');
+      passwordField.querySelector('input')!.type = 'password';
+      sheetCard.append(nameField, passwordField);
+      const signIn = el('button', 'hikerppl-btn', 'Sign in');
+      signIn.addEventListener('click', () => {
+        const name = nameField.querySelector('input')!.value.trim();
+        const password = passwordField.querySelector('input')!.value;
+        if (name && password) cb.onLeaderSignIn(name, password);
+      });
+      sheetCard.appendChild(signIn);
     }
 
     const close = el('button', 'hikerppl-btn', 'Close');
@@ -240,20 +218,12 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
 
   const closeMenus = () => {
     layersMenu.classList.add('hikerppl-hidden');
-    leaderPopover.classList.add('hikerppl-hidden');
   };
 
   // ---- events ----
   layersBtn.addEventListener('click', () => {
     renderLayers();
-    leaderPopover.classList.add('hikerppl-hidden');
     layersMenu.classList.toggle('hikerppl-hidden');
-  });
-
-  hatBtn.addEventListener('click', () => {
-    renderLeaderPopover();
-    layersMenu.classList.add('hikerppl-hidden');
-    leaderPopover.classList.toggle('hikerppl-hidden');
   });
 
   fullscreenBtn.addEventListener('click', () => cb.onToggleFullscreen());
@@ -336,7 +306,6 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
     },
     setLeaderState(next) {
       leaderState = next;
-      hatBtn.innerHTML = next.signedIn ? ICONS.hatSolid : ICONS.hatOutline;
       broadcastBtn.classList.toggle('hikerppl-hidden', !next.signedIn);
       noticeBtn.classList.toggle('hikerppl-hidden', !next.signedIn);
       broadcastBtn.classList.toggle('active', next.broadcasting);
@@ -368,7 +337,6 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
     dispose() {
       container.removeChild(bar);
       container.removeChild(layersMenu);
-      container.removeChild(leaderPopover);
       container.removeChild(sheet);
       container.removeChild(fsFloat);
       container.removeChild(broadcastPrompt);
