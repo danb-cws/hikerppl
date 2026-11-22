@@ -148,13 +148,74 @@ toolbar.setDistance(0);
 pushLeaderState();
 renderPersonalTracks();
 
+let bestAccuracy = Infinity;
+let locationHintShown = false;
+const positioningStartedAt = Date.now();
+
 startPositioning((fix) => {
   map.setOwnPosition(fix);
   recorder.onFix(fix);
   leader.onFix(fix);
   toolbar.setDistance(recorder.getDistanceMeters());
+
+  bestAccuracy = Math.min(bestAccuracy, fix.accuracy);
+  if (!locationHintShown && Date.now() - positioningStartedAt > 30_000 && bestAccuracy > 1000) {
+    locationHintShown = true;
+    showLocationHint();
+  }
 });
 
 if (import.meta.env.PROD) {
   registerServiceWorker();
+}
+
+/**
+ * Shown once when the device keeps reporting ~1 km+ accuracy, which almost
+ * always means the browser was granted "approximate" rather than "precise"
+ * location. Guides the user to the OS setting that fixes it.
+ */
+function showLocationHint(): void {
+  if (document.getElementById('hikerppl-location-hint')) return;
+  const hint = document.createElement('div');
+  hint.id = 'hikerppl-location-hint';
+  hint.style.cssText = [
+    'position: fixed',
+    'left: 12px',
+    'right: 12px',
+    'bottom: 16px',
+    'z-index: 2000',
+    'display: flex',
+    'align-items: center',
+    'gap: 10px',
+    'background: rgba(20,23,28,.96)',
+    'color: #fff',
+    'border: 1px solid rgba(255,255,255,.12)',
+    'border-radius: 12px',
+    'padding: 12px 14px',
+    'font: 13px/1.4 system-ui, sans-serif',
+    'box-shadow: 0 12px 34px rgba(0,0,0,.5)',
+  ].join(';');
+
+  const text = document.createElement('span');
+  text.style.flex = '1';
+  text.textContent =
+    'Location is approximate. For precise GPS, enable \u201cPrecise location\u201d for this site in your browser\u2019s Location settings.';
+
+  const ok = document.createElement('button');
+  ok.type = 'button';
+  ok.textContent = 'OK';
+  ok.style.cssText = [
+    'flex: 0 0 auto',
+    'background: #1a7a4c',
+    'color: #fff',
+    'border: 0',
+    'border-radius: 8px',
+    'padding: 8px 14px',
+    'font: 600 13px/1 system-ui, sans-serif',
+    'cursor: pointer',
+  ].join(';');
+  ok.addEventListener('click', () => hint.remove());
+
+  hint.append(text, ok);
+  document.body.appendChild(hint);
 }
