@@ -4,6 +4,7 @@ import { todayKey } from '../day';
 import type { LatLng, Waypoint } from '../map/map';
 
 const NOTICE_KEY = 'hikerppl.dismissedNotice';
+const STALE_BROADCAST_MS = 90_000;
 
 export interface FollowerCallbacks {
   showBroadcastPrompt(name: string): void;
@@ -75,9 +76,13 @@ export function createFollower(
     });
 
     const broadcast = today.child('broadcast').val() as
-      | { active?: unknown; name?: unknown; startedAt?: unknown }
+      | { active?: unknown; name?: unknown; startedAt?: unknown; lastBeat?: unknown }
       | null;
-    const bcActive = Boolean(broadcast?.active && typeof broadcast.startedAt === 'number');
+    const lastBeat = typeof broadcast?.lastBeat === 'number' ? broadcast.lastBeat : 0;
+    const fresh = Date.now() - lastBeat < STALE_BROADCAST_MS;
+    const bcActive = Boolean(
+      broadcast?.active && typeof broadcast.startedAt === 'number' && fresh,
+    );
     const startedAt = bcActive ? (broadcast?.startedAt as number) : null;
     activeName =
       (broadcast && typeof broadcast.name === 'string' && broadcast.name) || 'Leader';

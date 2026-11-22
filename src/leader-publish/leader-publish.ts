@@ -6,6 +6,7 @@ import type { PositionFix } from '../positioning/positioning';
 
 const CADENCE_METERS = 10;
 const CADENCE_SECONDS = 15;
+const HEARTBEAT_MS = 30_000;
 const NAME_KEY = 'hikerppl.leaderName';
 
 export interface SharedWaypoint {
@@ -60,10 +61,30 @@ export function createLeader(): LeaderApi {
   let broadcasting = false;
   let lastPoint: { lat: number; lng: number } | null = null;
   let lastSentAt = 0;
+  let broadcastStartedAt: number | null = null;
+  let heartbeatTimer: number | null = null;
 
-  const setBroadcastNode = (active: boolean) => {
+  const writeBroadcast = (active: boolean) => {
     const node = ref(dbInstance, `days/${todayKey()}/broadcast`);
-    return set(node, { active, name: name ?? 'Leader', startedAt: active ? Date.now() : 0 });
+    const now = Date.now();
+    const payload = active
+      ? { active: true, name: name ?? 'Leader', startedAt: broadcastStartedAt ?? now, lastBeat: now }
+      : { active: false, name: name ?? 'Leader', startedAt: 0, lastBeat: 0 };
+    return set(node, payload);
+  };
+
+  const clearHeartbeat = () => {
+    if (heartbeatTimer !== null) {
+      window.clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
+  };
+
+  const startHeartbeat = () => {
+    clearHeartbeat();
+    heartbeatTimer = window.setInterval(() => {
+      if (broadcasting) writeBroadcast(true).catch(() => {});
+    }, HEARTBEAT_MS);
   };
 
   const unsubscribe = onAuthStateChanged(authInstance, (user) => {
@@ -72,6 +93,8 @@ export function createLeader(): LeaderApi {
       broadcasting = false;
       lastPoint = null;
       lastSentAt = 0;
+      broadcastStartedAt = null;
+      clearHeartbeat();
       writeName(null);
     }
     emit();
@@ -89,7 +112,8 @@ export function createLeader(): LeaderApi {
         broadcasting = false;
         lastPoint = null;
         lastSentAt = 0;
-        await setBroadcastNode(false).catch(() => {});
+        clearHeartbeat();
+        await writeBroadcast(false).catch(() => {});
         emit();
       }
       void signOut(authInstance);
@@ -108,7 +132,14 @@ export function createLeader(): LeaderApi {
       broadcasting = on;
       lastPoint = null;
       lastSentAt = 0;
-      setBroadcastNode(on).catch(() => {});
+      if (on) {
+        broadcastStartedAt = Date.now();
+        writeBroadcast(true).catch(() => {});
+        startHeartbeat();
+      } else {
+        clearHeartbeat();
+        writeBroadcast(false).catch(() => {});
+      }
       emit();
     },
     sendNotice(text) {
@@ -138,6 +169,7 @@ export function createLeader(): LeaderApi {
       listeners.add(cb);
     },
     dispose() {
+      clearHeartbeat();
       unsubscribe();
     },
   };
