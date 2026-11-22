@@ -1,5 +1,5 @@
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
-import { onValue, push, ref, runTransaction, set } from 'firebase/database';
+import { get, onValue, push, ref, runTransaction, set } from 'firebase/database';
 import { auth, db, firebaseConfigured, leaderEmail } from '../firebase';
 import { todayKey } from '../day';
 import type { PositionFix } from '../positioning/positioning';
@@ -178,8 +178,25 @@ export function createLeader(): LeaderApi {
       sessionId = null;
       sessionStartedAt = null;
       writeName(null);
+      emit();
+      return;
     }
+
     emit();
+    if (!name) {
+      // Restore the display name from the leader session when it's missing
+      // locally (e.g. site data was cleared but auth persisted).
+      get(sessionRef())
+        .then((snap) => {
+          const cur = snap.val() as { name?: string } | null;
+          if (cur?.name) {
+            name = cur.name;
+            writeName(cur.name);
+            emit();
+          }
+        })
+        .catch(() => {});
+    }
   });
 
   let connected = true;
