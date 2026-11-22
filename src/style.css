@@ -456,6 +456,17 @@ body,
   white-space: nowrap;
 }
 
+.hikerppl-waypoint-name {
+  background: #fff;
+  color: #000;
+  border: 1px solid rgba(0, 0, 0, 0.7);
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 /* ---- text notice ---- */
 .hikerppl-notice {
   position: absolute;

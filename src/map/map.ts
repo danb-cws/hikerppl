@@ -177,7 +177,7 @@ export function createMap(el: HTMLElement): MapApi {
           permanent: true,
           direction: 'top',
           offset: L.point(0, -12),
-          className: 'hikerppl-waypoint-label',
+          className: 'hikerppl-waypoint-name',
         })
         .addTo(waypointLayer);
     }
@@ -291,7 +291,7 @@ export function createMap(el: HTMLElement): MapApi {
           permanent: true,
           direction: 'top',
           offset: L.point(0, -12),
-          className: 'hikerppl-waypoint-label',
+          className: 'hikerppl-waypoint-name',
         });
         marker.addTo(personalWaypointLayer);
         bindLongPress(marker, () => personalWaypointLongPressHandler?.(wp.id));
