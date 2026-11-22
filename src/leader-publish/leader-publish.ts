@@ -222,7 +222,11 @@ export function createLeader(): LeaderApi {
 
   return {
     async signIn(inputName, password) {
-      await signInWithEmailAndPassword(authInstance, email, password);
+      try {
+        await signInWithEmailAndPassword(authInstance, email, password);
+      } catch (error) {
+        throw new Error(authErrorMessage(error));
+      }
       const sid = makeId();
       const claim = await claimSession(inputName, sid);
       if (!claim.claimed) {
@@ -328,4 +332,11 @@ function writeName(name: string | null): void {
   } catch {
     // storage unavailable; name just won't persist across reloads
   }
+}
+
+function authErrorMessage(error: unknown): string {
+  const code = (error as { code?: string } | null)?.code ?? '';
+  if (code === 'auth/network-request-failed') return 'Network error — check your connection.';
+  if (code === 'auth/too-many-requests') return 'Too many sign-in attempts — try again later.';
+  return 'Incorrect password.';
 }
