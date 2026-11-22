@@ -139,9 +139,12 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
   trackDetails.style.width = '250px';
 
   // ---- waypoint dialog ----
-  const waypointDialog = el('div', 'hikerppl-popup hikerppl-waypoint-dialog hikerppl-hidden');
+  const waypointDialog = el('div', 'hikerppl-popup hikerppl-center-dialog hikerppl-hidden');
 
-  container.append(bar, layersMenu, sheet, fsFloat, broadcastPrompt, noticePopup, trackDetails, waypointDialog);
+  // ---- notice dialog ----
+  const noticeDialog = el('div', 'hikerppl-popup hikerppl-center-dialog hikerppl-hidden');
+
+  container.append(bar, layersMenu, sheet, fsFloat, broadcastPrompt, noticePopup, trackDetails, waypointDialog, noticeDialog);
 
   // ---- rendering helpers ----
   const renderLayers = () => {
@@ -222,6 +225,24 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
     layersMenu.classList.add('hikerppl-hidden');
   };
 
+  const showNoticeDialog = (onSend: (text: string) => void) => {
+    noticeDialog.textContent = '';
+    const title = el('h3', '', 'Send notice');
+    const field = inputField('Message');
+    const row = el('div', 'hikerppl-btnrow');
+    const send = el('span', 'hikerppl-btn hikerppl-btn-green', 'Send');
+    const dismiss = el('span', 'hikerppl-btn hikerppl-btn-ghost', 'Dismiss');
+    send.addEventListener('click', () => {
+      const text = field.querySelector('input')!.value.trim();
+      noticeDialog.classList.add('hikerppl-hidden');
+      if (text) onSend(text);
+    });
+    dismiss.addEventListener('click', () => noticeDialog.classList.add('hikerppl-hidden'));
+    row.append(send, dismiss);
+    noticeDialog.append(title, field, row);
+    noticeDialog.classList.remove('hikerppl-hidden');
+  };
+
   // ---- events ----
   layersBtn.addEventListener('click', () => {
     renderLayers();
@@ -240,8 +261,7 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
   });
   broadcastBtn.addEventListener('click', () => cb.onToggleBroadcast());
   noticeBtn.addEventListener('click', () => {
-    const text = (window.prompt('Notice text', '') ?? '').trim();
-    if (text) cb.onSendNotice(text);
+    showNoticeDialog((text) => cb.onSendNotice(text));
   });
   liveDot.addEventListener('click', () => cb.onRejoin());
 
@@ -362,6 +382,7 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
       container.removeChild(noticePopup);
       container.removeChild(trackDetails);
       container.removeChild(waypointDialog);
+      container.removeChild(noticeDialog);
     },
   };
 }
