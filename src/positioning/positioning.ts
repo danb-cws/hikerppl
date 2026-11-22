@@ -36,7 +36,7 @@ export function startPositioning(
       onFix({ lat, lng, accuracy, heading: headingDeg });
     },
     (error) => onError?.(error),
-    { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 60000 },
   );
 
   return () => navigator.geolocation.clearWatch(watchId);
