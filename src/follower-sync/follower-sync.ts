@@ -4,7 +4,9 @@ import { todayKey } from '../day';
 import type { LatLng, Waypoint } from '../map/map';
 
 const NOTICE_KEY = 'hikerppl.dismissedNotice';
-const STALE_BROADCAST_MS = 90_000;
+// Generous grace period so a leader who simply loses signal (dead zones are normal
+// on a hike) is not treated as stopped. The broadcast recovers when heartbeats resume.
+const STALE_BROADCAST_MS = 30 * 60_000;
 
 export interface FollowerCallbacks {
   showBroadcastPrompt(name: string): void;

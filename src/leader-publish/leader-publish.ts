@@ -6,7 +6,7 @@ import type { PositionFix } from '../positioning/positioning';
 
 const CADENCE_METERS = 10;
 const CADENCE_SECONDS = 15;
-const HEARTBEAT_MS = 30_000;
+const HEARTBEAT_MS = 60_000;
 const NAME_KEY = 'hikerppl.leaderName';
 
 export interface SharedWaypoint {
