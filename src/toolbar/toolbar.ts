@@ -19,7 +19,6 @@ export interface ToolbarCallbacks {
   onRecord(): void;
   onPause(): void;
   onStopSave(): void;
-  onDropWaypoint(): void;
   onSettingsChange(settings: Settings): void;
   onLeaderSignIn(name: string, password: string): void;
   onLeaderSignOut(): void;
@@ -44,6 +43,7 @@ export interface ToolbarApi {
   setLiveIndicator(visible: boolean): void;
   showNotice(from: string, text: string): void;
   showTrackDetails(details: TrackDetails): void;
+  showWaypointDialog(onPlace: (name: string) => void): void;
   dispose(): void;
 }
 
@@ -90,11 +90,10 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
   recordBtn.classList.add('hikerppl-rec');
   const pauseBtn = iconBtn(ICONS.pause, 'Pause');
   const stopBtn = iconBtn(ICONS.stop, 'Stop & save GPX');
-  const waypointBtn = iconBtn(ICONS.waypoint, 'Drop named waypoint');
   const media = el('div', 'hikerppl-media');
   media.append(recordBtn, pauseBtn, stopBtn);
 
-  const distanceEl = el('span', 'hikerppl-distance', '0.00 km');
+  const distanceEl = el('span', 'hikerppl-distance hikerppl-hidden', '0.00 km');
 
   const broadcastBtn = iconBtn(ICONS.broadcast, 'Broadcast live');
   broadcastBtn.classList.add('hikerppl-leader-only', 'hikerppl-hidden');
@@ -105,7 +104,7 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
   const settingsBtn = iconBtn(ICONS.settings, 'Settings');
 
   const leftGroup = el('div', 'hikerppl-toolbar-group');
-  leftGroup.append(layersBtn, fullscreenBtn, divider(), media, waypointBtn);
+  leftGroup.append(layersBtn, fullscreenBtn, divider(), media);
 
   const rightGroup = el('div', 'hikerppl-toolbar-group');
   rightGroup.append(broadcastBtn, noticeBtn, liveDot, settingsBtn);
@@ -139,7 +138,10 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
   const trackDetails = el('div', 'hikerppl-popup hikerppl-hidden');
   trackDetails.style.width = '250px';
 
-  container.append(bar, layersMenu, sheet, fsFloat, broadcastPrompt, noticePopup, trackDetails);
+  // ---- waypoint dialog ----
+  const waypointDialog = el('div', 'hikerppl-popup hikerppl-waypoint-dialog hikerppl-hidden');
+
+  container.append(bar, layersMenu, sheet, fsFloat, broadcastPrompt, noticePopup, trackDetails, waypointDialog);
 
   // ---- rendering helpers ----
   const renderLayers = () => {
@@ -231,7 +233,6 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
   recordBtn.addEventListener('click', () => cb.onRecord());
   pauseBtn.addEventListener('click', () => cb.onPause());
   stopBtn.addEventListener('click', () => cb.onStopSave());
-  waypointBtn.addEventListener('click', () => cb.onDropWaypoint());
   settingsBtn.addEventListener('click', () => {
     closeMenus();
     renderSettings();
@@ -294,6 +295,7 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
     setRecorderState(state) {
       recordBtn.classList.toggle('active', state === 'recording');
       pauseBtn.classList.toggle('active', state === 'paused');
+      distanceEl.classList.toggle('hikerppl-hidden', state === 'idle');
     },
     setDistance(meters) {
       currentDistance = meters;
@@ -334,6 +336,23 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
       renderTrackDetails(details);
       trackDetails.classList.remove('hikerppl-hidden');
     },
+    showWaypointDialog(onPlace) {
+      waypointDialog.textContent = '';
+      const title = el('h3', '', 'Place waypoint?');
+      const nameField = inputField('Name');
+      const row = el('div', 'hikerppl-btnrow');
+      const place = el('span', 'hikerppl-btn hikerppl-btn-green', 'Place');
+      const dismiss = el('span', 'hikerppl-btn hikerppl-btn-ghost', 'Dismiss');
+      place.addEventListener('click', () => {
+        const name = nameField.querySelector('input')!.value.trim() || 'Waypoint';
+        waypointDialog.classList.add('hikerppl-hidden');
+        onPlace(name);
+      });
+      dismiss.addEventListener('click', () => waypointDialog.classList.add('hikerppl-hidden'));
+      row.append(place, dismiss);
+      waypointDialog.append(title, nameField, row);
+      waypointDialog.classList.remove('hikerppl-hidden');
+    },
     dispose() {
       container.removeChild(bar);
       container.removeChild(layersMenu);
@@ -342,6 +361,7 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
       container.removeChild(broadcastPrompt);
       container.removeChild(noticePopup);
       container.removeChild(trackDetails);
+      container.removeChild(waypointDialog);
     },
   };
 }

@@ -21,6 +21,12 @@ export interface PersonalTrack {
   color: string;
 }
 
+export interface PersonalWaypointView extends LatLng {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export interface MapApi {
   setOwnPosition(fix: PositionFix): void;
   addLeaderRoute(points: LatLng[]): void;
@@ -32,6 +38,9 @@ export interface MapApi {
   setLayer(name: string): void;
   setPersonalTracks(tracks: PersonalTrack[]): void;
   onPersonalTrackLongPress(handler: (id: string) => void): void;
+  setPersonalWaypoints(waypoints: PersonalWaypointView[]): void;
+  onPersonalWaypointLongPress(handler: (id: string) => void): void;
+  onMapLongPress(handler: (point: LatLng) => void): void;
   centerOn(point: LatLng, zoom?: number): void;
 }
 
@@ -121,9 +130,11 @@ export function createMap(el: HTMLElement): MapApi {
   const leaderRoute = L.polyline([], { color: LEADER_ROUTE_COLOR, weight: 4 }).addTo(map);
   const waypointLayer = L.layerGroup().addTo(map);
   const personalLayer = L.layerGroup().addTo(map);
+  const personalWaypointLayer = L.layerGroup().addTo(map);
 
   const personalLines = new Map<string, L.Polyline>();
   let personalLongPressHandler: ((id: string) => void) | null = null;
+  let personalWaypointLongPressHandler: ((id: string) => void) | null = null;
 
   let firstFix = true;
 
@@ -203,6 +214,26 @@ export function createMap(el: HTMLElement): MapApi {
     onPersonalTrackLongPress(handler) {
       personalLongPressHandler = handler;
     },
+    setPersonalWaypoints(waypoints) {
+      personalWaypointLayer.clearLayers();
+      for (const wp of waypoints) {
+        const marker = L.circleMarker([wp.lat, wp.lng], {
+          radius: 8,
+          color: '#ffffff',
+          weight: 2,
+          fillColor: wp.color,
+          fillOpacity: 1,
+        }).bindTooltip(wp.name);
+        marker.addTo(personalWaypointLayer);
+        bindLongPress(marker, () => personalWaypointLongPressHandler?.(wp.id));
+      }
+    },
+    onPersonalWaypointLongPress(handler) {
+      personalWaypointLongPressHandler = handler;
+    },
+    onMapLongPress(handler) {
+      bindMapLongPress(map, handler);
+    },
     centerOn(point, zoom) {
       map.setView(L.latLng(point.lat, point.lng), zoom ?? Math.max(map.getZoom(), 15));
     },
@@ -212,8 +243,8 @@ export function createMap(el: HTMLElement): MapApi {
 }
 
 /** Fires `callback` after a ~550 ms press that does not move beyond a small threshold. */
-function bindLongPress(line: L.Polyline, callback: () => void): void {
-  const element = line.getElement();
+function bindLongPress(path: L.Path, callback: () => void): void {
+  const element = path.getElement();
   if (!element) return;
 
   let timer: number | null = null;
@@ -248,4 +279,41 @@ function bindLongPress(line: L.Polyline, callback: () => void): void {
   element.addEventListener('pointerup', cancel);
   element.addEventListener('pointercancel', cancel);
   element.addEventListener('pointerleave', cancel);
+}
+
+/** Long-press on empty map space → callback with the pressed lat/lng. */
+function bindMapLongPress(map: L.Map, callback: (point: LatLng) => void): void {
+  const container = map.getContainer();
+  let timer: number | null = null;
+  let startX = 0;
+  let startY = 0;
+
+  const cancel = () => {
+    if (timer !== null) {
+      window.clearTimeout(timer);
+      timer = null;
+    }
+  };
+
+  container.addEventListener('pointerdown', (event: Event) => {
+    const pointer = event as PointerEvent;
+    startX = pointer.clientX;
+    startY = pointer.clientY;
+    cancel();
+    timer = window.setTimeout(() => {
+      timer = null;
+      const latlng = map.mouseEventToLatLng(pointer);
+      callback({ lat: latlng.lat, lng: latlng.lng });
+    }, 550);
+  });
+
+  container.addEventListener('pointermove', (event: Event) => {
+    const pointer = event as PointerEvent;
+    if (timer !== null && Math.hypot(pointer.clientX - startX, pointer.clientY - startY) > 12) {
+      cancel();
+    }
+  });
+
+  container.addEventListener('pointerup', cancel);
+  container.addEventListener('pointercancel', cancel);
 }

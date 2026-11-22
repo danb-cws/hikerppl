@@ -55,7 +55,7 @@ body,
   left: 0;
   right: 0;
   z-index: 300;
-  height: 46px;
+  height: 50px;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -84,12 +84,12 @@ body,
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   background: transparent;
   color: var(--ink);
   border: 0;
-  border-radius: 8px;
+  border-radius: 9px;
   cursor: pointer;
 }
 
@@ -108,8 +108,8 @@ body,
 }
 
 .hikerppl-toolbar-btn svg {
-  width: 15px;
-  height: 15px;
+  width: 18px;
+  height: 18px;
 }
 
 .hikerppl-toolbar-btn.hikerppl-rec {
@@ -126,8 +126,8 @@ body,
 }
 
 .hikerppl-media .hikerppl-toolbar-btn {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
 }
 
@@ -414,6 +414,13 @@ body,
 
 .hikerppl-track-meta {
   margin: 0 0 12px !important;
+}
+
+.hikerppl-waypoint-dialog {
+  left: 50%;
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%);
 }
 
 /* ---- text notice ---- */

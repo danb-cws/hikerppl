@@ -5,6 +5,7 @@ import { createFollower } from './follower-sync/follower-sync';
 import { createRecorder } from './track-recorder/track-recorder';
 import { createToolbar } from './toolbar/toolbar';
 import { loadSettings, saveSettings, formatDistance } from './settings';
+import { createWaypointStore } from './waypoints/waypoints';
 import { registerServiceWorker } from './app-shell/register-sw';
 import './style.css';
 
@@ -12,6 +13,7 @@ const map = createMap(document.getElementById('map')!);
 
 let settings = loadSettings();
 const recorder = createRecorder();
+const waypointStore = createWaypointStore();
 const leader = createLeader();
 const follower = createFollower(
   {
@@ -48,6 +50,14 @@ const renderPersonalTracks = () => {
   );
 };
 
+const renderPersonalWaypoints = () => {
+  map.setPersonalWaypoints(
+    waypointStore
+      .list()
+      .map((w) => ({ id: w.id, lat: w.lat, lng: w.lng, name: w.name, color: settings.trackColor })),
+  );
+};
+
 const pushLeaderState = () => {
   toolbar.setLeaderState({
     signedIn: leader.isSignedIn(),
@@ -80,12 +90,6 @@ const toolbar = createToolbar(document.getElementById('app')!, {
   },
   onStopSave() {
     recorder.stopAndSave();
-  },
-  onDropWaypoint() {
-    const waypoint = recorder.dropWaypoint();
-    if (waypoint && leader.isBroadcasting()) {
-      leader.pushWaypoint({ lat: waypoint.lat, lng: waypoint.lng, label: waypoint.name });
-    }
   },
   onSettingsChange(next) {
     settings = next;
@@ -145,6 +149,12 @@ map.onPersonalTrackLongPress((id) => {
   });
 });
 
+map.onPersonalWaypointLongPress((id) => waypointStore.delete(id));
+map.onMapLongPress((point) => {
+  toolbar.showWaypointDialog((name) => placeWaypoint(point, name));
+});
+waypointStore.onChanged(renderPersonalWaypoints);
+
 document.addEventListener('fullscreenchange', () => {
   toolbar.setFullscreen(Boolean(document.fullscreenElement));
 });
@@ -156,6 +166,7 @@ toolbar.setRecorderState(recorder.getState());
 toolbar.setDistance(0);
 pushLeaderState();
 renderPersonalTracks();
+renderPersonalWaypoints();
 
 let bestAccuracy = Infinity;
 let locationHintShown = false;
@@ -227,6 +238,15 @@ function showLocationHint(): void {
 
   hint.append(text, ok);
   document.body.appendChild(hint);
+}
+
+/** Place a personal waypoint, plus share it when broadcasting and add to the GPX when recording. */
+function placeWaypoint(point: { lat: number; lng: number }, name: string): void {
+  waypointStore.add(point, name);
+  recorder.addWaypoint(point.lat, point.lng, name);
+  if (leader.isBroadcasting()) {
+    leader.pushWaypoint({ lat: point.lat, lng: point.lng, label: name });
+  }
 }
 
 /** Brief auto-dismissing toast. */

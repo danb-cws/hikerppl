@@ -26,7 +26,7 @@ export interface RecorderApi {
   resume(): void;
   /** Save the current recording (GPX download + local storage) and reset to idle. */
   stopAndSave(): void;
-  dropWaypoint(): PersonalWaypoint | null;
+  addWaypoint(lat: number, lng: number, name: string): PersonalWaypoint | null;
   onFix(fix: PositionFix): void;
   getState(): RecorderState;
   getDistanceMeters(): number;
@@ -95,10 +95,9 @@ export function createRecorder(): RecorderApi {
       state = 'idle';
       emit();
     },
-    dropWaypoint() {
-      if (state === 'idle' || !lastFix) return null;
-      const name = (window.prompt('Waypoint name', 'Waypoint') ?? '').trim() || 'Waypoint';
-      const waypoint: PersonalWaypoint = { lat: lastFix.lat, lng: lastFix.lng, name };
+    addWaypoint(lat, lng, name) {
+      if (state === 'idle') return null;
+      const waypoint: PersonalWaypoint = { lat, lng, name };
       waypoints = [...waypoints, waypoint];
       emit();
       return waypoint;
