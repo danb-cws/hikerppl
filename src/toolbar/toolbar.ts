@@ -75,6 +75,8 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5.6 9.6 a6.4 6.4 0 0 1 12.8 0 z"/><path d="M5.2 9.6 h13.6 l-2 2.5 H7.2 z"/><circle cx="12" cy="14.4" r="3.8"/><path d="M4 21.6 c1.7-4.6 4.6-6.5 8-6.5 s6.3 1.9 8 6.5 z"/></svg>',
 };
 
+const SWATCH_COLORS = ['#2563eb', '#ec4899', '#e63946', '#1a7a4c', '#f97316', '#8b5cf6'];
+
 export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): ToolbarApi {
   let settings: Settings = { units: 'km', trackColor: '#ec4899', leaderColor: '#2563eb' };
   let leaderState: LeaderState = { signedIn: false, name: null, broadcasting: false };
@@ -188,7 +190,7 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
     const leaderOpt = el('div', 'hikerppl-opt', '');
     leaderOpt.appendChild(el('span', '', 'Leader colour'));
     const leaderSwatches = el('div', 'hikerppl-swatches');
-    for (const color of ['#2563eb', '#1a7a4c', '#e63946', '#8b5cf6', '#f97316']) {
+    for (const color of SWATCH_COLORS) {
       const sw = el('span', 'hikerppl-swatch');
       sw.style.background = color;
       if (color === settings.leaderColor) sw.classList.add('on');
@@ -201,7 +203,7 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
     const userOpt = el('div', 'hikerppl-opt', '');
     userOpt.appendChild(el('span', '', 'User colour'));
     const userSwatches = el('div', 'hikerppl-swatches');
-    for (const color of ['#ec4899', '#f97316', '#22c55e', '#38bdf8', '#8b5cf6']) {
+    for (const color of SWATCH_COLORS) {
       const sw = el('span', 'hikerppl-swatch');
       sw.style.background = color;
       if (color === settings.trackColor) sw.classList.add('on');
