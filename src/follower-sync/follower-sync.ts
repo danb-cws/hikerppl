@@ -13,7 +13,7 @@ export interface FollowerCallbacks {
   hideBroadcastPrompt(): void;
   setLiveIndicator(visible: boolean): void;
   showNotice(from: string, text: string): void;
-  renderShared(points: LatLng[], waypoints: Waypoint[]): void;
+  renderShared(points: LatLng[], waypoints: Waypoint[], name: string): void;
   clearShared(): void;
   centerOnLeader(point: LatLng): void;
 }
@@ -108,7 +108,7 @@ export function createFollower(
 
       if (startedAt != null) {
         if (optedInStartedAt === startedAt) {
-          cb.renderShared(points, waypoints);
+          cb.renderShared(points, waypoints, activeName);
           cb.setLiveIndicator(false);
           cb.hideBroadcastPrompt();
         } else if (dismissedStartedAt === startedAt) {
@@ -147,7 +147,7 @@ export function createFollower(
       dismissedStartedAt = null;
       cb.hideBroadcastPrompt();
       cb.setLiveIndicator(false);
-      cb.renderShared(points, waypoints);
+      cb.renderShared(points, waypoints, activeName);
       const last = points[points.length - 1];
       if (last) cb.centerOnLeader(last);
     },

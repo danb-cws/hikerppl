@@ -290,6 +290,7 @@ body,
 }
 
 .hikerppl-sheet-card {
+  position: relative;
   width: 360px;
   max-width: calc(100vw - 32px);
   background: var(--card);
@@ -302,6 +303,26 @@ body,
 .hikerppl-sheet-title {
   margin: 0 0 4px;
   font-size: 16px;
+  color: #fff;
+}
+
+.hikerppl-sheet-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.hikerppl-sheet-close:hover {
+  background: rgba(255, 255, 255, 0.1);
   color: #fff;
 }
 

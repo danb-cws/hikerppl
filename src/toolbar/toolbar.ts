@@ -236,7 +236,7 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
       sheetCard.appendChild(signIn);
     }
 
-    const close = el('button', 'hikerppl-btn', 'Close');
+    const close = el('button', 'hikerppl-sheet-close', '✕');
     close.addEventListener('click', () => sheet.classList.add('hikerppl-hidden'));
     sheetCard.appendChild(close);
   };

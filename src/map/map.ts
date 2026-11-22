@@ -37,6 +37,7 @@ export interface MapApi {
   activeLayer(): string;
   setLayer(name: string): void;
   setLeaderColor(color: string): void;
+  setLeaderMarker(point: LatLng | null, name: string | null): void;
   setPersonalTracks(tracks: PersonalTrack[]): void;
   onPersonalTrackLongPress(handler: (id: string) => void): void;
   setPersonalWaypoints(waypoints: PersonalWaypointView[]): void;
@@ -58,7 +59,7 @@ const OS_ATTRIBUTION = `&copy; Crown copyright and database rights ${new Date().
 const DEFAULT_LEADER_COLOR = '#2563eb';
 
 export function createMap(el: HTMLElement): MapApi {
-  const map = L.map(el, { zoomControl: false }).setView([54.5, -2.5], 7);
+  const map = L.map(el, { zoomControl: false, attributionControl: false }).setView([54.5, -2.5], 7);
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
   const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
@@ -103,7 +104,14 @@ export function createMap(el: HTMLElement): MapApi {
     fillColor: '#1a7a4c',
     fillOpacity: 1,
     interactive: false,
-  }).addTo(map);
+  })
+    .bindTooltip('you', {
+      permanent: true,
+      direction: 'right',
+      offset: L.point(9, 0),
+      className: 'hikerppl-waypoint-label',
+    })
+    .addTo(map);
 
   const ownAccuracy = L.circle([0, 0], {
     radius: 0,
@@ -131,6 +139,19 @@ export function createMap(el: HTMLElement): MapApi {
   let sharedWaypoints: Waypoint[] = [];
 
   const leaderRoute = L.polyline([], { color: leaderColor, weight: 4 }).addTo(map);
+  const leaderDot = L.circleMarker([0, 0], {
+    radius: 7,
+    color: '#ffffff',
+    weight: 2,
+    fillColor: leaderColor,
+    fillOpacity: 1,
+    interactive: false,
+  }).bindTooltip('Leader', {
+    permanent: true,
+    direction: 'top',
+    offset: L.point(0, -12),
+    className: 'hikerppl-waypoint-label',
+  });
   const waypointLayer = L.layerGroup().addTo(map);
   const personalLayer = L.layerGroup().addTo(map);
   const personalWaypointLayer = L.layerGroup().addTo(map);
@@ -214,7 +235,18 @@ export function createMap(el: HTMLElement): MapApi {
     setLeaderColor(color) {
       leaderColor = color;
       leaderRoute.setStyle({ color });
+      leaderDot.setStyle({ fillColor: color });
       renderSharedWaypoints();
+    },
+    setLeaderMarker(point, name) {
+      if (!point || !name) {
+        leaderDot.remove();
+        return;
+      }
+      leaderDot.setLatLng(L.latLng(point.lat, point.lng));
+      leaderDot.setStyle({ fillColor: leaderColor });
+      leaderDot.setTooltipContent(name);
+      if (!map.hasLayer(leaderDot)) leaderDot.addTo(map);
     },
     setPersonalTracks(tracks) {
       personalLayer.clearLayers();

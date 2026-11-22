@@ -29,13 +29,15 @@ const follower = createFollower(
     showNotice(from, text) {
       toolbar.showNotice(from, text);
     },
-    renderShared(points, waypoints) {
+    renderShared(points, waypoints, name) {
       map.addLeaderRoute(points);
       map.addWaypoints(waypoints);
+      map.setLeaderMarker(points[points.length - 1] ?? null, name);
     },
     clearShared() {
       map.clearLeaderRoute();
       map.clearWaypoints();
+      map.setLeaderMarker(null, null);
     },
     centerOnLeader(point) {
       map.centerOn(point);
