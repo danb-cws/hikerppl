@@ -227,16 +227,26 @@ export function createLeader(): LeaderApi {
       } catch (error) {
         throw new Error(authErrorMessage(error));
       }
+
+      // Set the display name right away so the UI reflects it immediately.
+      name = inputName;
+      writeName(inputName);
+      emit();
+
       const sid = makeId();
-      const claim = await claimSession(inputName, sid);
+      let claim: { claimed: boolean; activeName?: string };
+      try {
+        claim = await claimSession(inputName, sid);
+      } catch {
+        await signOut(authInstance).catch(() => {});
+        throw new Error('Could not sign in as leader — check your connection.');
+      }
       if (!claim.claimed) {
         await signOut(authInstance).catch(() => {});
         throw new Error(`${claim.activeName} is already the active leader — they must sign out first.`);
       }
       sessionId = sid;
       sessionStartedAt = Date.now();
-      name = inputName;
-      writeName(inputName);
       startSessionHeartbeat(inputName, sid);
       emit();
     },
