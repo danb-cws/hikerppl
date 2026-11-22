@@ -1,5 +1,5 @@
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
-import { push, ref, set } from 'firebase/database';
+import { onValue, push, ref, set } from 'firebase/database';
 import { auth, db, firebaseConfigured, leaderEmail } from '../firebase';
 import { todayKey } from '../day';
 import type { PositionFix } from '../positioning/positioning';
@@ -26,6 +26,8 @@ export interface LeaderApi {
   pushWaypoint(waypoint: SharedWaypoint): void;
   onFix(fix: PositionFix): void;
   onStateChanged(cb: () => void): void;
+  onConnectionLost(cb: () => void): void;
+  onConnectionRestored(cb: () => void): void;
   dispose(): void;
 }
 
@@ -48,6 +50,8 @@ export function createLeader(): LeaderApi {
     onStateChanged(cb) {
       listeners.add(cb);
     },
+    onConnectionLost() {},
+    onConnectionRestored() {},
     dispose() {},
   };
 
@@ -98,6 +102,44 @@ export function createLeader(): LeaderApi {
       writeName(null);
     }
     emit();
+  });
+
+  let connected = true;
+  let disconnectTimer: number | null = null;
+  let lostNotified = false;
+  const lostListeners = new Set<() => void>();
+  const restoredListeners = new Set<() => void>();
+
+  const notifyLost = () => {
+    for (const cb of lostListeners) cb();
+  };
+  const notifyRestored = () => {
+    for (const cb of restoredListeners) cb();
+  };
+
+  const unsubscribeConnected = onValue(ref(dbInstance, '.info/connected'), (snap) => {
+    const isConnected = snap.val() === true;
+    if (isConnected === connected) return;
+    connected = isConnected;
+
+    if (connected) {
+      if (disconnectTimer !== null) {
+        window.clearTimeout(disconnectTimer);
+        disconnectTimer = null;
+      }
+      if (lostNotified) {
+        lostNotified = false;
+        notifyRestored();
+      }
+    } else if (broadcasting) {
+      // Two missed heartbeats ≈ two minutes: brief dropouts don't alarm the leader.
+      disconnectTimer = window.setTimeout(() => {
+        if (!connected && broadcasting) {
+          lostNotified = true;
+          notifyLost();
+        }
+      }, 2 * HEARTBEAT_MS);
+    }
   });
 
   return {
@@ -168,9 +210,16 @@ export function createLeader(): LeaderApi {
     onStateChanged(cb) {
       listeners.add(cb);
     },
+    onConnectionLost(cb) {
+      lostListeners.add(cb);
+    },
+    onConnectionRestored(cb) {
+      restoredListeners.add(cb);
+    },
     dispose() {
       clearHeartbeat();
       unsubscribe();
+      unsubscribeConnected();
     },
   };
 }

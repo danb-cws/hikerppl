@@ -132,6 +132,8 @@ recorder.onChanged(() => {
 });
 
 leader.onStateChanged(pushLeaderState);
+leader.onConnectionLost(() => showToast('Connection lost'));
+leader.onConnectionRestored(() => showToast('Reconnected'));
 
 map.onPersonalTrackLongPress((id) => {
   const track = recorder.listSavedTracks().find((t) => t.id === id);
