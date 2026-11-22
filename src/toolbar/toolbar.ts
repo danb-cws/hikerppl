@@ -44,6 +44,7 @@ export interface ToolbarApi {
   showNotice(from: string, text: string): void;
   showTrackDetails(details: TrackDetails): void;
   showWaypointDialog(onPlace: (name: string) => void): void;
+  showMessageDialog(message: string): void;
   dispose(): void;
 }
 
@@ -75,7 +76,7 @@ const ICONS = {
 };
 
 export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): ToolbarApi {
-  let settings: Settings = { units: 'km', trackColor: '#ec4899' };
+  let settings: Settings = { units: 'km', trackColor: '#ec4899', leaderColor: '#2563eb' };
   let leaderState: LeaderState = { signedIn: false, name: null, broadcasting: false };
   let activeLayerName = '';
 
@@ -144,7 +145,10 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
   // ---- notice dialog ----
   const noticeDialog = el('div', 'hikerppl-popup hikerppl-center-dialog hikerppl-hidden');
 
-  container.append(bar, layersMenu, sheet, fsFloat, broadcastPrompt, noticePopup, trackDetails, waypointDialog, noticeDialog);
+  // ---- message dialog ----
+  const messageDialog = el('div', 'hikerppl-popup hikerppl-center-dialog hikerppl-hidden');
+
+  container.append(bar, layersMenu, sheet, fsFloat, broadcastPrompt, noticePopup, trackDetails, waypointDialog, noticeDialog, messageDialog);
 
   // ---- rendering helpers ----
   const renderLayers = () => {
@@ -179,19 +183,33 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
     unitsOpt.appendChild(seg);
     sheetCard.appendChild(unitsOpt);
 
-    sheetCard.appendChild(el('div', 'hikerppl-sheet-sec', 'Track'));
-    const colorOpt = el('div', 'hikerppl-opt', '');
-    colorOpt.appendChild(el('span', '', 'Track colour'));
-    const swatches = el('div', 'hikerppl-swatches');
+    sheetCard.appendChild(el('div', 'hikerppl-sheet-sec', 'Track and waypoints'));
+
+    const leaderOpt = el('div', 'hikerppl-opt', '');
+    leaderOpt.appendChild(el('span', '', 'Leader colour'));
+    const leaderSwatches = el('div', 'hikerppl-swatches');
+    for (const color of ['#2563eb', '#1a7a4c', '#e63946', '#8b5cf6', '#f97316']) {
+      const sw = el('span', 'hikerppl-swatch');
+      sw.style.background = color;
+      if (color === settings.leaderColor) sw.classList.add('on');
+      sw.addEventListener('click', () => cb.onSettingsChange({ ...settings, leaderColor: color }));
+      leaderSwatches.appendChild(sw);
+    }
+    leaderOpt.appendChild(leaderSwatches);
+    sheetCard.appendChild(leaderOpt);
+
+    const userOpt = el('div', 'hikerppl-opt', '');
+    userOpt.appendChild(el('span', '', 'User colour'));
+    const userSwatches = el('div', 'hikerppl-swatches');
     for (const color of ['#ec4899', '#f97316', '#22c55e', '#38bdf8', '#8b5cf6']) {
       const sw = el('span', 'hikerppl-swatch');
       sw.style.background = color;
       if (color === settings.trackColor) sw.classList.add('on');
       sw.addEventListener('click', () => cb.onSettingsChange({ ...settings, trackColor: color }));
-      swatches.appendChild(sw);
+      userSwatches.appendChild(sw);
     }
-    colorOpt.appendChild(swatches);
-    sheetCard.appendChild(colorOpt);
+    userOpt.appendChild(userSwatches);
+    sheetCard.appendChild(userOpt);
 
     sheetCard.appendChild(el('div', 'hikerppl-sheet-sec', 'Leader'));
     if (leaderState.signedIn) {
@@ -373,6 +391,15 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
       waypointDialog.append(title, nameField, row);
       waypointDialog.classList.remove('hikerppl-hidden');
     },
+    showMessageDialog(message) {
+      messageDialog.textContent = '';
+      const text = el('p', '', message);
+      text.style.margin = '0 0 12px';
+      const dismiss = el('span', 'hikerppl-btn hikerppl-btn-ghost', 'Dismiss');
+      dismiss.addEventListener('click', () => messageDialog.classList.add('hikerppl-hidden'));
+      messageDialog.append(text, dismiss);
+      messageDialog.classList.remove('hikerppl-hidden');
+    },
     dispose() {
       container.removeChild(bar);
       container.removeChild(layersMenu);
@@ -383,6 +410,7 @@ export function createToolbar(container: HTMLElement, cb: ToolbarCallbacks): Too
       container.removeChild(trackDetails);
       container.removeChild(waypointDialog);
       container.removeChild(noticeDialog);
+      container.removeChild(messageDialog);
     },
   };
 }

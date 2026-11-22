@@ -423,6 +423,16 @@ body,
   transform: translate(-50%, -50%);
 }
 
+.hikerppl-waypoint-label {
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  border: 0;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
 /* ---- text notice ---- */
 .hikerppl-notice {
   position: absolute;

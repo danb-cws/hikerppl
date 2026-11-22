@@ -36,6 +36,7 @@ export interface MapApi {
   listLayers(): string[];
   activeLayer(): string;
   setLayer(name: string): void;
+  setLeaderColor(color: string): void;
   setPersonalTracks(tracks: PersonalTrack[]): void;
   onPersonalTrackLongPress(handler: (id: string) => void): void;
   setPersonalWaypoints(waypoints: PersonalWaypointView[]): void;
@@ -54,8 +55,7 @@ const TOPO_ATTRIBUTION =
   '(<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)';
 const OS_ATTRIBUTION = `&copy; Crown copyright and database rights ${new Date().getFullYear()} Ordnance Survey`;
 
-const LEADER_ROUTE_COLOR = '#2563eb';
-const WAYPOINT_COLOR = '#e63946';
+const DEFAULT_LEADER_COLOR = '#2563eb';
 
 export function createMap(el: HTMLElement): MapApi {
   const map = L.map(el, { zoomControl: false }).setView([54.5, -2.5], 7);
@@ -127,7 +127,10 @@ export function createMap(el: HTMLElement): MapApi {
     }),
   }).addTo(map);
 
-  const leaderRoute = L.polyline([], { color: LEADER_ROUTE_COLOR, weight: 4 }).addTo(map);
+  let leaderColor = DEFAULT_LEADER_COLOR;
+  let sharedWaypoints: Waypoint[] = [];
+
+  const leaderRoute = L.polyline([], { color: leaderColor, weight: 4 }).addTo(map);
   const waypointLayer = L.layerGroup().addTo(map);
   const personalLayer = L.layerGroup().addTo(map);
   const personalWaypointLayer = L.layerGroup().addTo(map);
@@ -137,6 +140,26 @@ export function createMap(el: HTMLElement): MapApi {
   let personalWaypointLongPressHandler: ((id: string) => void) | null = null;
 
   let firstFix = true;
+
+  const renderSharedWaypoints = () => {
+    waypointLayer.clearLayers();
+    for (const wp of sharedWaypoints) {
+      L.circleMarker([wp.lat, wp.lng], {
+        radius: 8,
+        color: '#ffffff',
+        weight: 2,
+        fillColor: leaderColor,
+        fillOpacity: 1,
+      })
+        .bindTooltip(wp.label ?? 'Waypoint', {
+          permanent: true,
+          direction: 'top',
+          offset: L.point(0, -12),
+          className: 'hikerppl-waypoint-label',
+        })
+        .addTo(waypointLayer);
+    }
+  };
 
   const api: MapApi = {
     setOwnPosition(fix) {
@@ -160,24 +183,15 @@ export function createMap(el: HTMLElement): MapApi {
       }
     },
     addLeaderRoute(points) {
+      leaderRoute.setStyle({ color: leaderColor });
       leaderRoute.setLatLngs(points.map((p) => L.latLng(p.lat, p.lng)));
     },
     clearLeaderRoute() {
       leaderRoute.setLatLngs([]);
     },
     addWaypoints(waypoints) {
-      waypointLayer.clearLayers();
-      for (const wp of waypoints) {
-        L.circleMarker([wp.lat, wp.lng], {
-          radius: 8,
-          color: '#ffffff',
-          weight: 2,
-          fillColor: WAYPOINT_COLOR,
-          fillOpacity: 1,
-        })
-          .bindTooltip(wp.label ?? 'Waypoint')
-          .addTo(waypointLayer);
-      }
+      sharedWaypoints = waypoints;
+      renderSharedWaypoints();
     },
     clearWaypoints() {
       waypointLayer.clearLayers();
@@ -196,6 +210,11 @@ export function createMap(el: HTMLElement): MapApi {
       }
       entry.layer.addTo(map);
       activeLayerName = name;
+    },
+    setLeaderColor(color) {
+      leaderColor = color;
+      leaderRoute.setStyle({ color });
+      renderSharedWaypoints();
     },
     setPersonalTracks(tracks) {
       personalLayer.clearLayers();
@@ -223,7 +242,12 @@ export function createMap(el: HTMLElement): MapApi {
           weight: 2,
           fillColor: wp.color,
           fillOpacity: 1,
-        }).bindTooltip(wp.name);
+        }).bindTooltip(wp.name, {
+          permanent: true,
+          direction: 'top',
+          offset: L.point(0, -12),
+          className: 'hikerppl-waypoint-label',
+        });
         marker.addTo(personalWaypointLayer);
         bindLongPress(marker, () => personalWaypointLongPressHandler?.(wp.id));
       }

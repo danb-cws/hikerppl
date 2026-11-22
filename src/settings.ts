@@ -3,10 +3,12 @@ export type Units = 'km' | 'mi';
 export interface Settings {
   units: Units;
   trackColor: string;
+  leaderColor: string;
 }
 
 const STORAGE_KEY = 'hikerppl.settings.v1';
 export const DEFAULT_TRACK_COLOR = '#ec4899';
+export const DEFAULT_LEADER_COLOR = '#2563eb';
 
 export function loadSettings(): Settings {
   try {
@@ -16,12 +18,13 @@ export function loadSettings(): Settings {
       return {
         units: parsed.units === 'mi' ? 'mi' : 'km',
         trackColor: typeof parsed.trackColor === 'string' ? parsed.trackColor : DEFAULT_TRACK_COLOR,
+        leaderColor: typeof parsed.leaderColor === 'string' ? parsed.leaderColor : DEFAULT_LEADER_COLOR,
       };
     }
   } catch {
     // fall through to defaults
   }
-  return { units: 'km', trackColor: DEFAULT_TRACK_COLOR };
+  return { units: 'km', trackColor: DEFAULT_TRACK_COLOR, leaderColor: DEFAULT_LEADER_COLOR };
 }
 
 export function saveSettings(settings: Settings): void {

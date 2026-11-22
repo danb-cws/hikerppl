@@ -95,11 +95,13 @@ const toolbar = createToolbar(document.getElementById('app')!, {
     settings = next;
     saveSettings(settings);
     toolbar.setSettings(settings);
+    map.setLeaderColor(settings.leaderColor);
     renderPersonalTracks();
+    renderPersonalWaypoints();
   },
   onLeaderSignIn(name, password) {
     leader.signIn(name, password).catch((error: Error) => {
-      window.alert(error.message);
+      toolbar.showMessageDialog(error.message);
     });
   },
   onLeaderSignOut() {
@@ -162,6 +164,7 @@ document.addEventListener('fullscreenchange', () => {
 // initial render
 toolbar.setLayers(map.listLayers(), map.activeLayer());
 toolbar.setSettings(settings);
+map.setLeaderColor(settings.leaderColor);
 toolbar.setRecorderState(recorder.getState());
 toolbar.setDistance(0);
 pushLeaderState();
