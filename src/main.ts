@@ -46,9 +46,11 @@ const follower = createFollower(
   () => leader.isSignedIn(),
 );
 
+const personalColor = () => (leader.isSignedIn() ? settings.leaderColor : settings.trackColor);
+
 const renderPersonalTracks = () => {
   map.setPersonalTracks(
-    recorder.listSavedTracks().map((t) => ({ id: t.id, points: t.points, color: settings.trackColor })),
+    recorder.listSavedTracks().map((t) => ({ id: t.id, points: t.points, color: personalColor() })),
   );
 };
 
@@ -56,7 +58,7 @@ const renderPersonalWaypoints = () => {
   map.setPersonalWaypoints(
     waypointStore
       .list()
-      .map((w) => ({ id: w.id, lat: w.lat, lng: w.lng, name: w.name, color: settings.trackColor })),
+      .map((w) => ({ id: w.id, lat: w.lat, lng: w.lng, name: w.name, color: personalColor() })),
   );
 };
 
@@ -68,6 +70,8 @@ const pushLeaderState = () => {
     broadcasting: leader.isBroadcasting(),
   });
   map.setOwnLabelVisible(!signedIn);
+  renderPersonalTracks();
+  renderPersonalWaypoints();
 };
 
 const toggleFullscreen = () => {
