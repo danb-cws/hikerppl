@@ -29,6 +29,7 @@ export interface PersonalWaypointView extends LatLng {
 
 export interface MapApi {
   setOwnPosition(fix: PositionFix): void;
+  setOwnLabelVisible(visible: boolean): void;
   addLeaderRoute(points: LatLng[]): void;
   clearLeaderRoute(): void;
   addWaypoints(waypoints: Waypoint[]): void;
@@ -201,6 +202,18 @@ export function createMap(el: HTMLElement): MapApi {
       if (firstFix) {
         map.setView(ll, Math.max(map.getZoom(), 15));
         firstFix = false;
+      }
+    },
+    setOwnLabelVisible(visible) {
+      if (visible) {
+        ownDot.bindTooltip('you', {
+          permanent: true,
+          direction: 'right',
+          offset: L.point(9, 0),
+          className: 'hikerppl-waypoint-label',
+        });
+      } else {
+        ownDot.unbindTooltip();
       }
     },
     addLeaderRoute(points) {

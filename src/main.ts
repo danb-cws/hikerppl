@@ -61,11 +61,13 @@ const renderPersonalWaypoints = () => {
 };
 
 const pushLeaderState = () => {
+  const signedIn = leader.isSignedIn();
   toolbar.setLeaderState({
-    signedIn: leader.isSignedIn(),
+    signedIn,
     name: leader.getName(),
     broadcasting: leader.isBroadcasting(),
   });
+  map.setOwnLabelVisible(!signedIn);
 };
 
 const toggleFullscreen = () => {
