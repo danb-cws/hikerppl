@@ -28,7 +28,7 @@ export interface Follower {
 
 export function createFollower(
   cb: FollowerCallbacks,
-  isSelfBroadcasting: () => boolean = () => false,
+  isLeader: () => boolean = () => false,
 ): Follower {
   let points: LatLng[] = [];
   let waypoints: Waypoint[] = [];
@@ -82,8 +82,8 @@ export function createFollower(
     activeName =
       (broadcast && typeof broadcast.name === 'string' && broadcast.name) || 'Leader';
 
-    if (isSelfBroadcasting()) {
-      // This device is the broadcasting leader: skip its own prompt and route.
+    if (isLeader()) {
+      // This device is the leader: never prompt or render its own broadcast.
       cb.setLiveIndicator(false);
       cb.hideBroadcastPrompt();
       cb.clearShared();

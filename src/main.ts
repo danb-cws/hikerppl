@@ -39,7 +39,7 @@ const follower = createFollower(
       map.centerOn(point);
     },
   },
-  () => leader.isBroadcasting(),
+  () => leader.isSignedIn(),
 );
 
 const renderPersonalTracks = () => {
