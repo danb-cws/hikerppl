@@ -308,7 +308,6 @@ export function createLeader(): LeaderApi {
       set(node, { text, name: name ?? 'Leader', at: Date.now() }).catch(() => {});
     },
     pushWaypoint(waypoint) {
-      if (!broadcasting) return;
       push(ref(dbInstance, `days/${todayKey()}/waypoints`), waypoint).catch(() => {});
     },
     onFix(fix) {

@@ -251,11 +251,11 @@ function showLocationHint(): void {
   document.body.appendChild(hint);
 }
 
-/** Place a personal waypoint, plus share it when broadcasting and add to the GPX when recording. */
+/** Place a waypoint: personal always, shared when signed in as leader, and in the GPX when recording. */
 function placeWaypoint(point: { lat: number; lng: number }, name: string): void {
   waypointStore.add(point, name);
   recorder.addWaypoint(point.lat, point.lng, name);
-  if (leader.isBroadcasting()) {
+  if (leader.isSignedIn()) {
     leader.pushWaypoint({ lat: point.lat, lng: point.lng, label: name });
   }
 }
