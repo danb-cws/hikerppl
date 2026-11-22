@@ -5,6 +5,10 @@
       "$date": {
         ".write": "auth != null && auth.uid === 'Eu0aYCFQJ4dv2FnqCaJ39kntSKh1'"
       }
+    },
+    "leaderSession": {
+      ".read": "auth != null && auth.uid === 'Eu0aYCFQJ4dv2FnqCaJ39kntSKh1'",
+      ".write": "auth != null && auth.uid === 'Eu0aYCFQJ4dv2FnqCaJ39kntSKh1'"
     }
   }
 }

@@ -1,5 +1,5 @@
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
-import { onValue, push, ref, set } from 'firebase/database';
+import { onValue, push, ref, runTransaction, set } from 'firebase/database';
 import { auth, db, firebaseConfigured, leaderEmail } from '../firebase';
 import { todayKey } from '../day';
 import type { PositionFix } from '../positioning/positioning';
@@ -7,6 +7,8 @@ import type { PositionFix } from '../positioning/positioning';
 const CADENCE_METERS = 10;
 const CADENCE_SECONDS = 15;
 const HEARTBEAT_MS = 60_000;
+const SESSION_HEARTBEAT_MS = 60_000;
+const SESSION_STALE_MS = 20 * 60_000;
 const NAME_KEY = 'hikerppl.leaderName';
 
 export interface SharedWaypoint {
@@ -67,6 +69,9 @@ export function createLeader(): LeaderApi {
   let lastSentAt = 0;
   let broadcastStartedAt: number | null = null;
   let heartbeatTimer: number | null = null;
+  let sessionId: string | null = null;
+  let sessionStartedAt: number | null = null;
+  let sessionHeartbeatTimer: number | null = null;
 
   const writeBroadcast = (active: boolean) => {
     const node = ref(dbInstance, `days/${todayKey()}/broadcast`);
@@ -91,6 +96,76 @@ export function createLeader(): LeaderApi {
     }, HEARTBEAT_MS);
   };
 
+  const sessionRef = () => ref(dbInstance, 'leaderSession');
+
+  const clearSessionHeartbeat = () => {
+    if (sessionHeartbeatTimer !== null) {
+      window.clearInterval(sessionHeartbeatTimer);
+      sessionHeartbeatTimer = null;
+    }
+  };
+
+  const startSessionHeartbeat = (activeName: string, sid: string) => {
+    clearSessionHeartbeat();
+    sessionHeartbeatTimer = window.setInterval(() => {
+      set(sessionRef(), {
+        active: true,
+        name: activeName,
+        sessionId: sid,
+        startedAt: sessionStartedAt ?? Date.now(),
+        lastBeat: Date.now(),
+      }).catch(() => {});
+    }, SESSION_HEARTBEAT_MS);
+  };
+
+  const clearSession = async () => {
+    clearSessionHeartbeat();
+    if (sessionId !== null) {
+      await set(sessionRef(), {
+        active: false,
+        name: name ?? '',
+        sessionId,
+        startedAt: sessionStartedAt ?? 0,
+        lastBeat: 0,
+      }).catch(() => {});
+    }
+    sessionId = null;
+    sessionStartedAt = null;
+  };
+
+  const claimSession = async (
+    activeName: string,
+    sid: string,
+  ): Promise<{ claimed: boolean; activeName?: string }> => {
+    const result = await runTransaction(sessionRef(), (current) => {
+      const cur = current?.val() as
+        | { active?: boolean; name?: string; sessionId?: string; lastBeat?: number }
+        | null;
+      const fresh = Boolean(
+        cur?.active && typeof cur?.lastBeat === 'number' && Date.now() - cur.lastBeat < SESSION_STALE_MS,
+      );
+      if (fresh && cur?.sessionId !== sid) {
+        return; // abort — another leader holds the session
+      }
+      return {
+        active: true,
+        name: activeName,
+        sessionId: sid,
+        startedAt: Date.now(),
+        lastBeat: Date.now(),
+      };
+    });
+
+    if (result.committed) return { claimed: true };
+    const cur = result.snapshot.val() as { name?: string } | null;
+    return { claimed: false, activeName: (cur?.name as string) || 'Another leader' };
+  };
+
+  const makeId = () => {
+    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
+    return `s-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  };
+
   const unsubscribe = onAuthStateChanged(authInstance, (user) => {
     if (!user) {
       name = null;
@@ -99,6 +174,9 @@ export function createLeader(): LeaderApi {
       lastSentAt = 0;
       broadcastStartedAt = null;
       clearHeartbeat();
+      clearSessionHeartbeat();
+      sessionId = null;
+      sessionStartedAt = null;
       writeName(null);
     }
     emit();
@@ -145,8 +223,17 @@ export function createLeader(): LeaderApi {
   return {
     async signIn(inputName, password) {
       await signInWithEmailAndPassword(authInstance, email, password);
+      const sid = makeId();
+      const claim = await claimSession(inputName, sid);
+      if (!claim.claimed) {
+        await signOut(authInstance).catch(() => {});
+        throw new Error(`${claim.activeName} is already the active leader — they must sign out first.`);
+      }
+      sessionId = sid;
+      sessionStartedAt = Date.now();
       name = inputName;
       writeName(inputName);
+      startSessionHeartbeat(inputName, sid);
       emit();
     },
     async signOut() {
@@ -156,8 +243,9 @@ export function createLeader(): LeaderApi {
         lastSentAt = 0;
         clearHeartbeat();
         await writeBroadcast(false).catch(() => {});
-        emit();
       }
+      await clearSession();
+      emit();
       void signOut(authInstance);
     },
     isSignedIn() {
@@ -218,6 +306,7 @@ export function createLeader(): LeaderApi {
     },
     dispose() {
       clearHeartbeat();
+      clearSessionHeartbeat();
       unsubscribe();
       unsubscribeConnected();
     },
