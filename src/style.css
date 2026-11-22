@@ -427,9 +427,10 @@ body,
   background: rgba(0, 0, 0, 0.72);
   color: #fff;
   border: 0;
-  border-radius: 4px;
-  padding: 1px 6px;
-  font-size: 11px;
+  border-radius: 5px;
+  padding: 3px 8px;
+  font-size: 14px;
+  font-weight: 600;
   white-space: nowrap;
 }
 
