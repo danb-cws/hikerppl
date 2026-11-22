@@ -63,7 +63,7 @@ export function createLeader(): LeaderApi {
 
   const setBroadcastNode = (active: boolean) => {
     const node = ref(dbInstance, `days/${todayKey()}/broadcast`);
-    set(node, { active, name: name ?? 'Leader', startedAt: active ? Date.now() : 0 }).catch(() => {});
+    return set(node, { active, name: name ?? 'Leader', startedAt: active ? Date.now() : 0 });
   };
 
   const unsubscribe = onAuthStateChanged(authInstance, (user) => {
@@ -84,12 +84,12 @@ export function createLeader(): LeaderApi {
       writeName(inputName);
       emit();
     },
-    signOut() {
+    async signOut() {
       if (broadcasting) {
         broadcasting = false;
         lastPoint = null;
         lastSentAt = 0;
-        setBroadcastNode(false);
+        await setBroadcastNode(false).catch(() => {});
         emit();
       }
       void signOut(authInstance);
@@ -108,7 +108,7 @@ export function createLeader(): LeaderApi {
       broadcasting = on;
       lastPoint = null;
       lastSentAt = 0;
-      setBroadcastNode(on);
+      setBroadcastNode(on).catch(() => {});
       emit();
     },
     sendNotice(text) {
